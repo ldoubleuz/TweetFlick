@@ -1,0 +1,48 @@
+html, body{
+    position:relative;
+    background-color: #faf7ef;
+    /*background: transparent url('../images/roughclothcream.png') repeat;*/
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    min-width:100%;
+    /* required to have the white space reach the bottom
+     of the screen */
+    height:100%;
+    min-height:100%;
+    
+    font-family: "Lucida Sans Unicode", "Lucida Grande",  Verdana, Helvetica, Arial, sans-serif; 
+    font-size: 100%;
+    line-height: 1.4;
+    text-rendering: optimizeLegibility;
+}
+
+#main-wrapper{
+    margin:auto;
+    width:80%;
+    max-width:1000px;
+    height:100%;
+}
+
+#photos{
+    width:100%;
+    min-height:20%;
+    border:1px dashed grey;
+}
+
+#words-col-wrap, #tweets-col-wrap{
+    float:left;
+    width:46%;
+    padding:1%
+}
+
+#tweets-col img{
+    width:48px;
+    height:48px;
+}
+
+#tweets-col li{
+    list-style-type:none;
+    padding:0;
+    margin:0;
+}

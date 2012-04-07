@@ -1,22 +1,46 @@
 // Get user via HTML5 geolocation api
-function getLocation() {
+function performSearch(e) {
+    e.preventDefault();
+    var rawTerm = $("#search-input").val();
+    $("#messages").empty();
+    $("#messages").append(
+        $("<p/>").text("searching for: '"+rawTerm+"'")
+    );
+    
     console.log(navigator.geolocation);
-	navigator.geolocation.getCurrentPosition(getTweets, 
+	navigator.geolocation.getCurrentPosition(
+        function(position){
+            fetchTweets(rawTerm, position);
+        }, 
         function(){
             console.log("error in getting location");
-            $("#main-wrapper").append("error in getting location");
-        });
+            $("#messages").append(
+                $("<p/>").text("error in getting location, searching all tweets...")
+            );
+            fetchTweets(rawTerm, null);
+        }
+    );
+    fetchFlickrPhotos(rawTerm);
+    
     console.log("derp");
 }
 
 // Fetch tweets from twitter
-function getTweets(position) {
+function fetchTweets(rawTerm, position) {
     console.log("getting tweets");
 	console.log(position);
-	var lat = position.coords.latitude;
-	var long = position.coords.longitude;
-	var term = "exam";
-    var mile_range = 50;
+    var geocode;
+    if(position){
+        var lat = position.coords.latitude;
+        var long = position.coords.longitude;
+        var mile_range = 50;
+        geocode = lat+","+long+","+mile_range+"mi";
+    }
+    else{
+        geocode = "";
+    }
+    
+	var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
 
 	// Print coords in header
 	//$(".coords").text(lat+", "+long);
@@ -25,42 +49,59 @@ function getTweets(position) {
     var readyPages = 0;
     var maxPages = 9;
     
-    term = term.toLowerCase();
+    var url
     for(var page = 1; page <= maxPages; page++){
-        var url = "http://search.twitter.com/search.json?q="+term+"+exclude:retweets&geocode="+lat+","+long+","+mile_range+"mi"+"&rpp=100"+"&lang=en"+"&page="+page;
+        url = "http://search.twitter.com/search.json"+
+                  "?q="+searchTerm+"+exclude:retweets"+
+                  "&geocode="+geocode+
+                  "&rpp=100"+
+                  "&lang=en"+
+                  "&page="+page;
         console.log(url);
         $.ajax({
             url: url,
             dataType: "jsonp",
             success: function(data) {
                 console.log("success");
-                wordCounts = printTweets(data, wordCounts);
+                wordCounts = processTweets(data, wordCounts);
+                if(readyPages == 0){
+                    $("#tweets-col").empty();
+                }
                 readyPages += 1;
-                if(readyPages >= maxPages){
+                //commenting out conditional 
+                //if(readyPages >= maxPages){
                     var commonWords = getMostCommonWords(wordCounts);
-                    console.log(commonWords);
-                    $("#main-wrapper").append(commonWords.join(" "));
-                }    
+                    //console.log(commonWords);
+                    $("#words-col").empty();
+                    $("#words-col").append(commonWords.join(" "));
+                //}    
             }
         });
     }
 }
 
 
-function printTweets(data, wordCounts) {
+function processTweets(data, wordCounts) {
 	//console.log(data);
-	var i;
-	for (i = 0; i < data.results.length; i++) {
+    if(data.error){
+        $("#messages").append(
+            $("<p/>").text("Twitter search error: "+data.error)
+        );
+        return;
+    }
+    
+	for (var i = 0; i < data.results.length; i++) {
 		var tweet = data.results[i];
 		var place = "";
 		
-		if(tweet.geo != null) {
+		/*if(tweet.geo != null) {
 			place = tweet.geo.coordinates[0]+", "+tweet.geo.coordinates[1]
-		}
-		//var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time> <span class='place'>"+place+"</span></li>";
+		}*/
+		var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time></li>";
 		//var item = "<li>"+tweet.text+"</li>"
         //var item = tweet.text;
-		//$("#main-wrapper").append(item);
+        
+		$("#tweets-col").append(item);
         wordCounts = updateWordCounts(tweet.text, wordCounts);
 	}
     //console.log(data.results.length);
@@ -73,7 +114,8 @@ function updateWordCounts(text, wordCounts){
     // (excluding @ and # hashtags)
     // removes from beginning or ends of words
     // also remove links starting with http
-    text = text.replace(/\b[^\w\s@#]+\B|\B[^\w\s@#]+\b|\bhttp.*\B/g, "");
+    // also remove unicode
+    text = text.replace(/&\w+;|\b[^\w\s@#]+\B|\B[^\w\s@#]+\b|\bhttp.*\B/g, "");
     //split on whitespace
     text = text.split(/\s/);
     var word;
@@ -81,7 +123,8 @@ function updateWordCounts(text, wordCounts){
         word = text[i];
         //don't add empty strings
         // and ignore tiny words (likely to be boring)
-        if(!word || word.length <= 2){
+        // also ignore stop words and non words
+        if(!word || word.length <= 2 || STOP_WORDS_SET[word] || !/[a-zA-Z0-9]/g.test(word)){
             continue;
         }
         
@@ -97,7 +140,7 @@ function updateWordCounts(text, wordCounts){
 
 //return an array of the most common words
 function getMostCommonWords(wordCounts){
-    console.log("started sorting");
+    //console.log("started sorting");
     // sort by highest count
     var keyVals = [];
     var value;
@@ -110,7 +153,7 @@ function getMostCommonWords(wordCounts){
     //console.log(wordCounts);
     keyVals.sort(compareWordCountDesc);
     
-    console.log("putting into array");
+    //console.log("putting into array");
     // return words sorted by commonness
     var commonWords = [];
     for(var i in keyVals){
@@ -134,8 +177,205 @@ function compareWordCountDesc(wordCount1, wordCount2){
     }
 }
 
+function updateStopWords(stopWordsSet, stopWordsList){
+    var stopWord;
+    for(var i in stopWordsList){
+        stopWord = stopWordsList[i];
+        stopWordsSet[stopWord] = true;
+    }
+    return stopWordsSet;
+}
+
+function makeStopWordsSet(){
+    var stopWords = ['a', "a's", 'able', 'about', 'above',
+            'according', 'accordingly', 'across', 'actually', 'after',
+            'afterwards', 'again', 'against', "ain't", 'all',
+            'allow', 'allows', 'almost', 'alone', 'along',
+            'already', 'also', 'although', 'always', 'am',
+            'among', 'amongst', 'an', 'and', 'another',
+            'any', 'anybody', 'anyhow', 'anyone', 'anything',
+            'anyway', 'anyways', 'anywhere', 'apart', 'appear',
+            'appreciate', 'appropriate', 'are', "aren't", 'around',
+            'as', 'aside', 'ask', 'asking', 'associated',
+            'at', 'available', 'away', 'awfully', 'be',
+            'became', 'because', 'become', 'becomes', 'becoming',
+            'been', 'before', 'beforehand', 'behind', 'being',
+            'believe', 'below', 'beside', 'besides', 'best',
+            'better', 'between', 'beyond', 'both', 'brief',
+            'but', 'by', "c'mon", "c's", 'came',
+            'can', "can't", 'cannot', 'cant', 'cause',
+            'causes', 'certain', 'certainly', 'changes', 'clearly',
+            'co', 'com', 'come', 'comes', 'concerning',
+            'consequently', 'consider', 'considering', 'contain', 'containing',
+            'contains', 'corresponding', 'could', "couldn't", 'course',
+            'currently', 'definitely', 'described', 'despite', 'did',
+            "didn't", 'different', 'do', 'does', "doesn't", "doesnt", "don't", "dont",
+            'doing', "don't", 'done', 'down', 'downwards',
+            'during', 'each', 'edu', 'eg', 'eight',
+            'either', 'else', 'elsewhere', 'enough', 'entirely',
+            'especially', 'et', 'etc', 'even', 'ever',
+            'every', 'everybody', 'everyone', 'everything', 'everywhere',
+            'ex', 'exactly', 'example', 'except', 'far',
+            'few', 'fifth', 'first', 'five', 'followed',
+            'following', 'follows', 'for', 'former', 'formerly',
+            'forth', 'four', 'from', 'further', 'furthermore',
+            'get', 'gets', 'getting', 'given', 'gives',
+            'go', 'goes', 'going', 'gone', 'got',
+            'gotten', 'had', "hadn't", 'happens',
+            'hardly', 'has', "hasn't", 'have', "haven't",
+            'having', 'he', "he'd", "he'll", "he's",
+            'hence', 'her', 'here',
+            "here's", 'hereafter', 'hereby', 'herein', 'hereupon',
+            'hers', 'herself', 'hi', 'him', 'himself',
+            'his', 'hither', 'hopefully', 'how', "how's",
+            'howbeit', 'however', 'i', "i'd", "i'll",
+            "i'm", "i've", 'ie', 'if', 'ignored',
+            'immediate', 'in', 'inasmuch', 'inc', 'indeed',
+            'indicate', 'indicated', 'indicates', 'inner', 'insofar',
+            'instead', 'into', 'inward', 'is', "isn't",
+            'it', "it'd", "it'll", "it's", 'its',
+            'itself', 'just', 'keep', 'keeps', 'kept',
+            'know', 'known', 'knows', 'last', 'lately',
+            'later', 'latter', 'latterly', 'least', 'less',
+            'lest', 'let', "let's", 'like', 'liked',
+            'likely', 'little', 'look', 'looking', 'looks',
+            'ltd', 'mainly', 'many', 'may', 'maybe',
+            'me', 'mean', 'meanwhile', 'merely', 'might',
+            'more', 'moreover', 'most', 'mostly', 'much',
+            'must', "mustn't", 'my', 'myself', 'name',
+            'namely', 'nd', 'near', 'nearly', 'necessary',
+            'need', 'needs', 'neither', 'never', 'nevertheless',
+            'new', 'next', 'nine', 'no', 'nobody',
+            'non', 'none', 'noone', 'nor', 'normally',
+            'not', 'nothing', 'novel', 'now', 'nowhere',
+            'obviously', 'of', 'off', 'often', 'oh',
+            'ok', 'okay', 'old', 'on', 'once',
+            'one', 'ones', 'only', 'onto', 'or',
+            'other', 'others', 'otherwise', 'ought', 'our',
+            'ours', 'ourselves', 'out', 'outside', 'over',
+            'overall', 'own', 'particular', 'particularly', 'per',
+            'perhaps', 'placed', 'please', 'plus', 'possible',
+            'presumably', 'probably', 'provides', 'que', 'quite',
+            'qv', 'rather', 'rd', 're', 'really',
+            'reasonably', 'regarding', 'regardless', 'regards', 'relatively',
+            'respectively', 'right', 'said', 'same', 'saw',
+            'say', 'saying', 'says', 'second', 'secondly',
+            'see', 'seeing', 'seem', 'seemed', 'seeming',
+            'seems', 'seen', 'self', 'selves', 'sensible',
+            'sent', 'serious', 'seriously', 'seven', 'several',
+            'shall', "shan't", 'she', "she'd", "she'll",
+            "she's", 'should', "shouldn't", 'since', 'six',
+            'so', 'some', 'somebody', 'somehow', 'someone',
+            'something', 'sometime', 'sometimes', 'somewhat', 'somewhere',
+            'soon', 'sorry', 'specified', 'specify', 'specifying',
+            'still', 'sub', 'such', 'sup', 'sure',
+            "t's", 'take', 'taken', 'tell', 'tends',
+            'th', 'than', 'thank', 'thanks', 'thanx',
+            'that', "that's", 'thats', 'the', 'their',
+            'theirs', 'them', 'themselves', 'then', 'thence',
+            'there', "there's", 'thereafter', 'thereby', 'therefore',
+            'therein', 'theres', 'thereupon', 'these', 'they',
+            "they'd", "they'll", "they're", "they've", 'think',
+            'third', 'this', 'thorough', 'thoroughly', 'those',
+            'though', 'three', 'through', 'throughout', 'thru',
+            'thus', 'to', 'together', 'too', 'took',
+            'toward', 'towards', 'tried', 'tries', 'truly',
+            'try', 'trying', 'twice', 'two', 'un',
+            'under', 'unfortunately', 'unless', 'unlikely', 'until',
+            'unto', 'up', 'upon', 'us', 'use',
+            'used', 'useful', 'uses', 'using', 'usually',
+            'value', 'various', 'very', 'via', 'viz',
+            'vs', 'want', 'wants', 'was', "wasn't",
+            'way', 'we', "we'd", "we'll", "we're",
+            "we've", 'welcome', 'well', 'went', 'were',
+            "weren't", 'what', "what's", 'whatever', 'when',
+            "when's", 'whence', 'whenever', 'where', "where's",
+            'whereafter', 'whereas', 'whereby', 'wherein', 'whereupon',
+            'wherever', 'whether', 'which', 'while', 'whither',
+            'who', "who's", 'whoever', 'whole', 'whom',
+            'whose', 'why', "why's", 'will', 'willing',
+            'wish', 'with', 'within', 'without', "won't",
+            'wonder', 'would', "wouldn't", 'yes', 'yet',
+            'you', "you'd", "you'll", "you're", "youre", "you've",
+            'your', 'yours', 'yourself', 'yourselves', 'zero'];
+    var swears = ["fuck", "fucking", "fucked", "shit", "damn", "bitch", "nigga", "nigger"];
+    var boring = ["lol", "lmao", "smh"];
+    
+    var stopWordsSet = Object();
+    stopWordsSet = updateStopWords(stopWordsSet, stopWords);
+    stopWordsSet = updateStopWords(stopWordsSet, swears);
+    stopWordsSet = updateStopWords(stopWordsSet, boring);
+    return stopWordsSet;
+}
+
+function fetchFlickrPhotos(rawTerm){
+    var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
+    var url = "http://api.flickr.com/services/rest/?" +
+                "method=flickr.photos.search" +
+                "&api_key=9d75266f03a55de4ee6e51e48cd49b9d" +
+                "&text="+searchTerm +
+                "&safe_search=1" +  // 1 is "safe"
+                "&content_type=1" +  // 1 is "photos only"
+                "&sort=relevance" +  // another good one is "interestingness-desc"
+                "&per_page=26"+
+                "&format=json&jsoncallback=?"; // used to do JSON request
+    console.log(url);
+                
+    $.ajax({
+        url: url,
+        dataType: "jsonp",
+        success: function(data) {
+            console.log("Flickr data returned!");
+            console.log(data);
+            if(data.stat == "fail"){
+                $("#messages").append(
+                    $("<p />").text("error while fetching Flickr: "+data.message)
+                );
+            }
+            else{
+                processFlickrPhotos(data);
+            }
+        }    
+    });    
+}
+
+function processFlickrPhotos(data){
+    $("#photos").empty();
+    if(!(data.photos && data.photos.photo)){
+        console.log("no photos to process!");
+        return;
+    }
+    
+    var photoDataArray = data.photos.photo;
+    if(photoDataArray.length == 0){
+        $("#photos").append(
+            $("<p />").text("No Flickr photos available. :(")
+        );    
+        return;
+    }
+    
+    var photoData;
+    for(var i in photoDataArray){
+        photoData = photoDataArray[i];
+        $("#photos").append(
+            $("<img />").attr("src", constructFlickrImageURL(photoData))
+        );
+    }
+}
+
+// see: http://www.flickr.com/services/api/misc.urls.html
+// format: http://farm{farm-id}.staticflickr.com/{server-id}/{id}_{secret}_[mstzb].jpg
+function constructFlickrImageURL(photo){
+    return "http://farm"+photo.farm+
+           ".staticflickr.com/"+photo.server+
+           "/"+photo.id+
+           "_"+photo.secret+
+           "_s.jpg"; // adding _s.jpg makes it a small thumbnail
+}
+
 function init(){
-    getLocation();
+    STOP_WORDS_SET = makeStopWordsSet();
+    $("#search-form").submit(performSearch);
 }
 
 $(document).ready(init);

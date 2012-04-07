@@ -26,8 +26,11 @@ html, body{
 
 #photos{
     width:100%;
-    min-height:20%;
     border:1px dashed grey;
+    transition: 0.2s;
+    -moz-transition: 0.2s; /* Firefox 4 */
+    -webkit-transition:  0.2s; /* Safari and Chrome */
+    -o-transition: 0.2s; /* Opera */
 }
 
 #words-col-wrap, #tweets-col-wrap{

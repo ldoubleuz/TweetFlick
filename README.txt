@@ -4,7 +4,7 @@ A class project for an HTML5 class.
 
 Goal: 
 
-To using the Geolocation, Twitter, and Flickr APIs to create a simple Twitter visualizer. 
+To use the Geolocation, Twitter, and Flickr APIs to create a simple Twitter visualizer. 
 
 My project partner wanted to do something with Flickr, and I wanted to do something with Twitter to practice interacting with other servers, so we decided on this as a compromise.
 

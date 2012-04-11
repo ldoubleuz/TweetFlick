@@ -13,7 +13,7 @@ function performSearch(e) {
             fetchTweets(rawTerm, position);
         }, 
         function(){
-            console.log("error in getting location");
+            //console.log("error in getting location");
             $("#messages").append(
                 $("<p/>").text("error in getting location, searching all tweets...")
             );
@@ -21,8 +21,6 @@ function performSearch(e) {
         }
     );
     fetchFlickrPhotos(rawTerm);
-    
-    console.log("derp");
 }
 
 // Fetch tweets from twitter
@@ -45,9 +43,9 @@ function fetchTweets(rawTerm, position) {
 	// Print coords in header
 	//$(".coords").text(lat+", "+long);
 
-    var wordCounts = Object();
+    var wordCounts = new Object();
     var readyPages = 0;
-    var maxPages = 9;
+    var maxPages = 1;
     
     var url
     for(var page = 1; page <= maxPages; page++){
@@ -57,17 +55,19 @@ function fetchTweets(rawTerm, position) {
                   "&rpp=100"+
                   "&lang=en"+
                   "&page="+page;
-        console.log(url);
+        //console.log(url);
         $.ajax({
             url: url,
             dataType: "jsonp",
             success: function(data) {
-                console.log("success");
-                wordCounts = processTweets(data, wordCounts);
+                console.log("tweet success");
                 if(readyPages == 0){
                     $("#tweets-col").empty();
                 }
                 readyPages += 1;
+                
+                wordCounts = processTweets(data, wordCounts);
+                
                 //commenting out conditional 
                 //if(readyPages >= maxPages){
                     var commonWords = getMostCommonWords(wordCounts);
@@ -100,16 +100,17 @@ function processTweets(data, wordCounts) {
 		var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time></li>";
 		//var item = "<li>"+tweet.text+"</li>"
         //var item = tweet.text;
-        
 		$("#tweets-col").append(item);
-        wordCounts = updateWordCounts(tweet.text, wordCounts);
+        wordCounts = updateWordCounts(tweet, wordCounts);
 	}
     //console.log(data.results.length);
     return wordCounts;
 }
 
-function updateWordCounts(text, wordCounts){
-    text = text.toLowerCase();
+function updateWordCounts(tweet, wordCounts){
+    console.log("tweet data:");
+    console.log(tweet);
+    var text = tweet.text.toLowerCase();
     //use regex to remove punctuation characters 
     // (excluding @ and # hashtags)
     // removes from beginning or ends of words
@@ -128,8 +129,9 @@ function updateWordCounts(text, wordCounts){
             continue;
         }
         
+        //console.log(wordCounts);
         //initialize new word counts
-        if (wordCounts[word] == null){
+        if (!wordCounts[word]){
             wordCounts[word] = 0;
         }
         // actually increment count
@@ -319,14 +321,14 @@ function fetchFlickrPhotos(rawTerm){
                 "&sort=relevance" +  // another good one is "interestingness-desc"
                 "&per_page=26"+
                 "&format=json&jsoncallback=?"; // used to do JSON request
-    console.log(url);
+    //console.log(url);
                 
     $.ajax({
         url: url,
         dataType: "jsonp",
         success: function(data) {
-            console.log("Flickr data returned!");
-            console.log(data);
+            //console.log("Flickr data returned!");
+            //console.log(data);
             if(data.stat == "fail"){
                 $("#messages").append(
                     $("<p />").text("error while fetching Flickr: "+data.message)
@@ -356,21 +358,39 @@ function processFlickrPhotos(data){
     
     var photoData;
     for(var i in photoDataArray){
+        var sizes = ["small", "medium", "large"]; 
+        var size = sizes[Math.floor(Math.random()*sizes.length)];
         photoData = photoDataArray[i];
-        $("#photos").append(
-            $("<img />").attr("src", constructFlickrImageURL(photoData))
-        );
+        var $image = $("<img />").attr("src", constructFlickrImageURL(photoData, size));
+        $("#photos").append($image);
     }
 }
 
 // see: http://www.flickr.com/services/api/misc.urls.html
 // format: http://farm{farm-id}.staticflickr.com/{server-id}/{id}_{secret}_[mstzb].jpg
-function constructFlickrImageURL(photo){
-    return "http://farm"+photo.farm+
+function constructFlickrImageURL(photo, size){
+    var url = "http://farm"+photo.farm+
            ".staticflickr.com/"+photo.server+
            "/"+photo.id+
-           "_"+photo.secret+
-           "_s.jpg"; // adding _s.jpg makes it a small thumbnail
+           "_"+photo.secret;
+           
+    //default to small
+    if(!size || size == "small"){
+        url = url+"_s.jpg"; // adding _s.jpg makes it a small thumbnail square
+    }
+    else if(size == "medium"){
+        url = url+"_q.jpg"; // adding _q.jpg makes it a bigger thumbnail square
+    }
+    else if(size == "large"){
+        url = url+"_m.jpg"; // adding _m.jpg makes it a medium size with 240 on the longest side
+    }
+    else{
+        console.log("invalid size for photo:");
+        console.log(photo);
+        console.log("defaulting to smallest size");
+        url = url+"_s.jpg";
+    }
+    return url;                 
 }
 
 function init(){

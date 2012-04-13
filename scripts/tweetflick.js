@@ -361,9 +361,41 @@ function processFlickrPhotos(data){
         var sizes = ["small", "medium", "large"]; 
         var size = sizes[Math.floor(Math.random()*sizes.length)];
         photoData = photoDataArray[i];
-        var $image = $("<img />").attr("src", constructFlickrImageURL(photoData, size));
-        $("#photos").append($image);
+        
+        var $image = $("<img />");
+        $image.load(function(){
+            $("#photos").append(cropPhotoSquare($(this)));
+        });
+        $image.attr("src", constructFlickrImageURL(photoData, size));
     }
+}
+
+//returns the jquery object to append as the photo
+//leaves square photos untouched, wraps nonsquare in a clipper div container
+function cropPhotoSquare($image){
+    var imgWidth = $image[0].width;
+    var imgHeight = $image[0].height;
+    
+    console.log(imgWidth, imgHeight);
+    if(imgWidth == imgHeight){
+        return $image;
+    }    
+    
+    var targetSize = Math.min(imgWidth, imgHeight);
+    var $imageClipper = $("<div />").addClass("photo-clipper");
+    
+    $imageClipper.css({
+        "width": targetSize + "px",
+        "height":targetSize + "px"
+    });
+    $image.addClass("photo-clipped");
+    $image.css({
+        "top": -Math.round((imgHeight-targetSize)/2),
+        "left": -Math.round((imgWidth-targetSize)/2)
+    });
+    
+    $imageClipper.append($image);
+    return $imageClipper;
 }
 
 // see: http://www.flickr.com/services/api/misc.urls.html

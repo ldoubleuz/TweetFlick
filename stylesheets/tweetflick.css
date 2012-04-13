@@ -33,6 +33,22 @@ html, body{
     -o-transition: 0.2s; /* Opera */
 }
 
+#photos img{
+    display:inline-block;
+    margin:0;
+    padding:0;
+}
+
+.photo-clipper{
+    position:relative;
+    overflow:hidden;
+    display:inline-block;
+}
+
+.photo-clipped{
+    position:absolute;
+}
+
 #words-col-wrap, #tweets-col-wrap{
     float:left;
     width:46%;

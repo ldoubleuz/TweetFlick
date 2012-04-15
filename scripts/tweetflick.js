@@ -4,12 +4,22 @@ function Word(word){
     this.count = 0;
 }
 
+jQuery.fn.appendSlide = function($appendMe, duration){
+    $(this).each(function(){
+        var $appendTo = $(this);
+        $appendMe.hide();
+        $appendTo.append($appendMe);
+        $appendMe.slideDown(duration);
+    });
+    return $(this);
+};
+
 // Get user via HTML5 geolocation api
 function performSearch(e) {
     e.preventDefault();
     var rawTerm = $("#search-input").val();
     $("#messages").empty();
-    $("#messages").append(
+    $("#messages").appendSlide(
         $("<p/>").text("searching for: '"+rawTerm+"'")
     );
     
@@ -17,16 +27,17 @@ function performSearch(e) {
 	navigator.geolocation.getCurrentPosition(
         function(position){
             fetchTweets(rawTerm, position);
+            fetchFlickrPhotos(rawTerm);
         }, 
         function(){
             //console.log("error in getting location");
-            $("#messages").append(
+            $("#messages").appendSlide(
                 $("<p/>").text("error in getting location, searching all tweets...")
             );
             fetchTweets(rawTerm, null);
+            fetchFlickrPhotos(rawTerm);
         }
     );
-    fetchFlickrPhotos(rawTerm);
 }
 
 // Fetch tweets from twitter
@@ -350,9 +361,13 @@ function fetchFlickrPhotos(rawTerm){
                 "&content_type=1" +  // 1 is "photos only"
                 "&sort=relevance" +  // another good one is "interestingness-desc"
                 "&per_page=26"+
+                "&extras=description,owner_name"+
                 "&format=json&jsoncallback=?"; // used to do JSON request
     console.log(url);            
-                
+               
+    var $loadingmessage = $("<p/>").attr("id", "loading-photos").text("loading photos...").hide();
+    $("#messages").appendSlide($loadingmessage);
+               
     $.ajax({
         url: url,
         dataType: "jsonp",
@@ -379,7 +394,14 @@ function fetchFlickrPhotos(rawTerm){
 }
 
 function processFlickrPhotos(data){
-    $("#photos").empty();
+    /*$container.find(".photo-frame").each(function(){
+        removePhoto($(this));
+    });*/
+    
+    $container.isotope("remove", $container.find(".photo-frame"), function(){
+        $container.isotope("reLayout");
+    });
+    
     if(!(data.photos && data.photos.photo)){
         console.log("no photos to process!");
         return;
@@ -387,35 +409,48 @@ function processFlickrPhotos(data){
     
     var photoDataArray = data.photos.photo;
     if(photoDataArray.length == 0){
-        $("#photos").append(
+        $container.append(
             $("<p />").text("No Flickr photos available. :(")
         );    
         return;
     }
     
     var photoData;
+    var totalImages = photoDataArray.length;
+    var loadedImages = 0;
+    
     for(var i in photoDataArray){
         var sizes = ["small", "medium", "large"]; 
         var size = sizes[Math.floor(Math.random()*sizes.length)];
         photoData = photoDataArray[i];
         
         var $image = $("<img />");
+        var $photoWrapper = $("<div/>").addClass("photo-frame");
+        $photoWrapper.append($image);
         $image.load(function(){
-            $("#photos").append(cropPhotoSquare($(this)));
+            var $wrapper = $(this).parent();
+            cropPhotoSquare($(this));
+            $container.append($wrapper).isotope('appended', $wrapper);
+            //$("#words-col-wrap").prepend($wrapper);
+            
+            loadedImages += 1
+            if(loadedImages >= totalImages){
+                $("#loading-photos").slideUp("fast");
+            }
         });
         $image.attr("src", constructFlickrImageURL(photoData, size));
     }
 }
 
-//returns the jquery object to append as the photo
 //leaves square photos untouched, wraps nonsquare in a clipper div container
 function cropPhotoSquare($image, targetSize){
+    
     var imgWidth = $image[0].width;
     var imgHeight = $image[0].height;
     
     //console.log(imgWidth, imgHeight);
     if(imgWidth == imgHeight){
-        return $image;
+        return;
     }    
     
     var maxSize = Math.min(imgWidth, imgHeight);
@@ -436,8 +471,7 @@ function cropPhotoSquare($image, targetSize){
         "left": -Math.round((imgWidth-targetSize)/2)
     });
     
-    $imageClipper.append($image);
-    return $imageClipper;
+    $image.wrap($imageClipper);
 }
 
 // see: http://www.flickr.com/services/api/misc.urls.html
@@ -467,9 +501,23 @@ function constructFlickrImageURL(photo, size){
     return url;                 
 }
 
+//http://www.flickr.com/photos/{user-id}/{photo-id} - individual photo
+function constructFlickrLinkURL(photo){
+    return "http://www.flickr.com/photos/" + photo.owner + "/"+photo.id+"/";
+}
+
 function init(){
     STOP_WORDS_SET = makeStopWordsSet();
     $("#search-form").submit(performSearch);
+    
+    $container = $("#photos");
+    $container.isotope({
+        itemSelector : '.photo-frame',
+        layoutMode : 'masonry',
+        masonry: {
+            columnWidth:10
+        }
+    });
 }
 
 $(document).ready(init);

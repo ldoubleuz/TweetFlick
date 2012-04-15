@@ -1,3 +1,9 @@
+function Word(word){
+    this.word = word;
+    this.tweet_ids_set = {};
+    this.count = 0;
+}
+
 // Get user via HTML5 geolocation api
 function performSearch(e) {
     e.preventDefault();
@@ -43,16 +49,31 @@ function fetchTweets(rawTerm, position) {
 	// Print coords in header
 	//$(".coords").text(lat+", "+long);
 
-    var wordCounts = new Object();
-    var readyPages = 0;
-    var maxPages = 1;
+    /*
+           __keys__     __values__
+           <word>           corresponding Word object
+    */
+    var wordData = new Object();
     
+     /*
+           __keys__     __values__
+            <id_str>       the tweet data object associated with this id_str
+    */
+    var tweetIdData = new Object();
+    
+    /*
+        an array of string words in order from most to least common
+    */
+    var commonWords = [];
+    var readyPages = 0;
+    var maxPages = 9;
+    var tweetsPerPage = 100;
     var url
     for(var page = 1; page <= maxPages; page++){
         url = "http://search.twitter.com/search.json"+
                   "?q="+searchTerm+"+exclude:retweets"+
                   "&geocode="+geocode+
-                  "&rpp=100"+
+                  "&rpp="+tweetsPerPage+
                   "&lang=en"+
                   "&page="+page;
         //console.log(url);
@@ -66,12 +87,17 @@ function fetchTweets(rawTerm, position) {
                 }
                 readyPages += 1;
                 
-                wordCounts = processTweets(data, wordCounts);
-                
+                processTweets(data, wordData, tweetIdData);
+
                 //commenting out conditional 
                 //if(readyPages >= maxPages){
-                    var commonWords = getMostCommonWords(wordCounts);
-                    //console.log(commonWords);
+                    commonWords = getMostCommonWords(wordData);
+                    /*console.log("commonWords");
+                    console.log(commonWords);
+                    console.log("wordData");
+                    console.log(wordData);
+                    console.log("tweets");
+                    console.log(tweetIdData);*/
                     $("#words-col").empty();
                     $("#words-col").append(commonWords.join(" "));
                 //}    
@@ -81,7 +107,7 @@ function fetchTweets(rawTerm, position) {
 }
 
 
-function processTweets(data, wordCounts) {
+function processTweets(data, wordData, tweetIdData) {
 	//console.log(data);
     if(data.error){
         $("#messages").append(
@@ -101,16 +127,17 @@ function processTweets(data, wordCounts) {
 		//var item = "<li>"+tweet.text+"</li>"
         //var item = tweet.text;
 		$("#tweets-col").append(item);
-        wordCounts = updateWordCounts(tweet, wordCounts);
+        wordData = updateWordCounts(tweet, wordData, tweetIdData);
 	}
     //console.log(data.results.length);
-    return wordCounts;
+    return wordData;
 }
 
-function updateWordCounts(tweet, wordCounts){
-    console.log("tweet data:");
-    console.log(tweet);
+function updateWordCounts(tweet, wordData, tweetIdData){
+    //console.log("tweet data:");
+    //console.log(tweet);
     var text = tweet.text.toLowerCase();
+    var tweet_id = tweet.id_str;
     //use regex to remove punctuation characters 
     // (excluding @ and # hashtags)
     // removes from beginning or ends of words
@@ -129,37 +156,40 @@ function updateWordCounts(tweet, wordCounts){
             continue;
         }
         
-        //console.log(wordCounts);
+        //console.log(wordData);
         //initialize new word counts
-        if (!wordCounts[word]){
-            wordCounts[word] = 0;
+        if (!wordData[word]){
+            wordData[word] = new Word(word);
         }
+        
         // actually increment count
-        wordCounts[word] += 1;
+        wordData[word].count += 1;
+        wordData[word].tweet_ids_set[tweet_id] = true;
+        tweetIdData[tweet_id] = tweet;
     }
-    return wordCounts;
+    return wordData;
 }
 
 //return an array of the most common words
-function getMostCommonWords(wordCounts){
+function getMostCommonWords(wordData){
     //console.log("started sorting");
     // sort by highest count
     var keyVals = [];
     var value;
-    //first convert the wordCount object to an array
-    for(var key in wordCounts){
-        value = wordCounts[key];
-        keyVals[keyVals.length] = {"word":key, "count":value};                        
+    //first convert the word counts in the object to an array
+    for(var key in wordData){
+        count_value = wordData[key].count;
+        keyVals[keyVals.length] = {"word":key, "count":count_value};                        
     }
     //console.log(keyVals);
-    //console.log(wordCounts);
+    //console.log(wordData);
     keyVals.sort(compareWordCountDesc);
     
     //console.log("putting into array");
     // return words sorted by commonness
     var commonWords = [];
     for(var i in keyVals){
-        //pull from object and put back in array
+        // put word back in array
         commonWords[i] = keyVals[i].word;
     }
     //console.log("common words:");
@@ -321,14 +351,14 @@ function fetchFlickrPhotos(rawTerm){
                 "&sort=relevance" +  // another good one is "interestingness-desc"
                 "&per_page=26"+
                 "&format=json&jsoncallback=?"; // used to do JSON request
-    //console.log(url);
+    console.log(url);            
                 
     $.ajax({
         url: url,
         dataType: "jsonp",
         success: function(data) {
-            //console.log("Flickr data returned!");
-            //console.log(data);
+            console.log("Flickr data returned!");
+            console.log(data);
             if(data.stat == "fail"){
                 $("#messages").append(
                     $("<p />").text("error while fetching Flickr: "+data.message)
@@ -337,7 +367,14 @@ function fetchFlickrPhotos(rawTerm){
             else{
                 processFlickrPhotos(data);
             }
-        }    
+        },
+        error: function(data, error) {
+            console.log("Flickr error data returned!");
+            console.log(data);
+            $("#messages").append(
+                $("<p />").text("error while fetching Flickr: "+error)
+            );
+        }
     });    
 }
 
@@ -372,16 +409,21 @@ function processFlickrPhotos(data){
 
 //returns the jquery object to append as the photo
 //leaves square photos untouched, wraps nonsquare in a clipper div container
-function cropPhotoSquare($image){
+function cropPhotoSquare($image, targetSize){
     var imgWidth = $image[0].width;
     var imgHeight = $image[0].height;
     
-    console.log(imgWidth, imgHeight);
+    //console.log(imgWidth, imgHeight);
     if(imgWidth == imgHeight){
         return $image;
     }    
     
-    var targetSize = Math.min(imgWidth, imgHeight);
+    var maxSize = Math.min(imgWidth, imgHeight);
+    if(targetSize == null || targetSize <= 0 || targetSize > maxSize){
+        console.log("no valid targetsize; default to cropping to largest square available");
+        targetSize = maxSize;
+    }
+    
     var $imageClipper = $("<div />").addClass("photo-clipper");
     
     $imageClipper.css({

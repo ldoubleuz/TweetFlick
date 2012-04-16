@@ -17,19 +17,31 @@ html, body{
     text-rendering: optimizeLegibility;
 }
 
+.preloaded{
+    display:none;
+}
+
+.hidden{
+    visibility: hidden;
+}
+
 #main-wrapper{
     margin:auto;
     width:80%;
-    max-width:1000px;
+    max-width:1200px;
     height:100%;
 }
 
+header{
+    padding-top: 1em;
+}
+
 #search-input{
-    border-radius:3px;
+    border-radius:5px;
 }
 
 #search-button{
-    border-radius:1px;
+    border-radius:3px;
     padding:.2em .8em;
     border: #e0b4a7 1px solid;
     background-color:#CC816B;
@@ -46,12 +58,23 @@ html, body{
     -o-transition: 0.2s; /* Opera */
 }
 
-#photos .photo-frame{
+.photo-frame{
     display:inline-block;
     text-align:center;
-    padding:3px;
-    padding-bottom:1px;
+    padding:6px;
+    padding-bottom:3px;
     margin:0;
+    border:1px transparent solid;
+    border-radius:3px;
+}
+
+.photo-frame:hover{
+    background-color:white;
+    border:1px red solid;
+}
+
+.photo-frame:hover img{
+    opacity:.5;
 }
 
 #photos img{
@@ -69,13 +92,17 @@ html, body{
 }
 
 .photo-clipped{
-    /*position:absolute;*/
+    position:absolute;
 }
 
 #words-col-wrap, #tweets-col-wrap{
     float:left;
     width:46%;
     padding:1%
+}
+
+#words-col{
+    word-wrap:break-word;
 }
 
 #tweets-col img{

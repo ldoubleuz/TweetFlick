@@ -23,6 +23,14 @@ function performSearch(e) {
         $("<p/>").text("searching for: '"+rawTerm+"'")
     );
     
+    $container.isotope("remove", $container.find(".photo-frame"), function(){
+        $container.isotope("reLayout");
+    });
+    
+    $(".flickr-img").each(function(){
+        $(this).unbind("load");
+    });
+    
     console.log(navigator.geolocation);
 	navigator.geolocation.getCurrentPosition(
         function(position){
@@ -92,7 +100,7 @@ function fetchTweets(rawTerm, position) {
             url: url,
             dataType: "jsonp",
             success: function(data) {
-                console.log("tweet success");
+                console.log("tweet success", data);
                 if(readyPages == 0){
                     $("#tweets-col").empty();
                 }
@@ -163,7 +171,7 @@ function updateWordCounts(tweet, wordData, tweetIdData){
         //don't add empty strings
         // and ignore tiny words (likely to be boring)
         // also ignore stop words and non words
-        if(!word || word.length <= 2 || STOP_WORDS_SET[word] || !/[a-zA-Z0-9]/g.test(word)){
+        if(!word || word.length <= 2 || myData.stopWordsSet[word] || !/[a-zA-Z0-9]/g.test(word)){
             continue;
         }
         
@@ -366,6 +374,7 @@ function fetchFlickrPhotos(rawTerm){
     console.log(url);            
                
     var $loadingmessage = $("<p/>").attr("id", "loading-photos").text("loading photos...").hide();
+    $loadingmessage.append($("<img />").attr("src", "images/snake_loader.gif"));
     $("#messages").appendSlide($loadingmessage);
                
     $.ajax({
@@ -389,6 +398,9 @@ function fetchFlickrPhotos(rawTerm){
             $("#messages").append(
                 $("<p />").text("error while fetching Flickr: "+error)
             );
+            $("#loading-photos").slideUp("fast", function(){
+                $("#loading-photos").remove();
+            });
         }
     });    
 }
@@ -398,10 +410,6 @@ function processFlickrPhotos(data){
         removePhoto($(this));
     });*/
     
-    $container.isotope("remove", $container.find(".photo-frame"), function(){
-        $container.isotope("reLayout");
-    });
-    
     if(!(data.photos && data.photos.photo)){
         console.log("no photos to process!");
         return;
@@ -409,9 +417,12 @@ function processFlickrPhotos(data){
     
     var photoDataArray = data.photos.photo;
     if(photoDataArray.length == 0){
-        $container.append(
+        $("#messages").appendSlide(
             $("<p />").text("No Flickr photos available. :(")
         );    
+        $("#loading-photos").slideUp("fast", function(){
+            $("#loading-photos").remove();
+        });
         return;
     }
     
@@ -424,22 +435,59 @@ function processFlickrPhotos(data){
         var size = sizes[Math.floor(Math.random()*sizes.length)];
         photoData = photoDataArray[i];
         
-        var $image = $("<img />");
+        var $image = $("<img />").addClass("flickr-img");
+        var $link = $("<a />").attr({
+            href: constructFlickrLinkURL(photoData),
+            target: "_blank"
+        });
+        $link.addClass("photo-link");
+        $link.append($image);
+        
         var $photoWrapper = $("<div/>").addClass("photo-frame");
-        $photoWrapper.append($image);
+        $photoWrapper.append($link);
+        
+        //temporarily hide and append to document so that .closest() call works
+        $photoWrapper.addClass("hidden");
+        $("body").append($photoWrapper);
+        
         $image.load(function(){
-            var $wrapper = $(this).parent();
+            console.log($(this).parents());
+            var $wrapper = $(this).closest(".photo-frame");
+            // remove from document so that we may place it in the correct container
+            $wrapper.detach();
+            // remember to make the thing visible again!
+            $wrapper.removeClass("hidden");
+            
+            resizeOversizedPhoto($(this), 180);
             cropPhotoSquare($(this));
             $container.append($wrapper).isotope('appended', $wrapper);
             //$("#words-col-wrap").prepend($wrapper);
-            
             loadedImages += 1
             if(loadedImages >= totalImages){
-                $("#loading-photos").slideUp("fast");
+                $("#loading-photos").slideUp("fast", function(){
+                    $("#loading-photos").remove();
+                });
             }
         });
         $image.attr("src", constructFlickrImageURL(photoData, size));
     }
+}
+
+function resizeOversizedPhoto($image, targetSize){
+    var img = $image[0];
+    // if smallest dimension is width, which is too big
+    if (img.width <= img.height && img.width > targetSize){
+        var targetWidth = targetSize;
+        img.height = img.height / img.width * targetWidth
+        img.width = targetWidth;
+    }
+    // if smallest dimension is height, which is too big
+    else if (img.height < img.width && img.height > targetSize){
+        var targetHeight = targetSize;
+        img.width = img.width / img.height * targetHeight
+        img.height = targetHeight;
+    }
+    return $image;
 }
 
 //leaves square photos untouched, wraps nonsquare in a clipper div container
@@ -455,7 +503,7 @@ function cropPhotoSquare($image, targetSize){
     
     var maxSize = Math.min(imgWidth, imgHeight);
     if(targetSize == null || targetSize <= 0 || targetSize > maxSize){
-        console.log("no valid targetsize; default to cropping to largest square available");
+        console.log("targetsize: ", targetSize);
         targetSize = maxSize;
     }
     
@@ -507,7 +555,9 @@ function constructFlickrLinkURL(photo){
 }
 
 function init(){
-    STOP_WORDS_SET = makeStopWordsSet();
+    myData = {};
+
+    myData.stopWordsSet = makeStopWordsSet();
     $("#search-form").submit(performSearch);
     
     $container = $("#photos");
@@ -515,7 +565,7 @@ function init(){
         itemSelector : '.photo-frame',
         layoutMode : 'masonry',
         masonry: {
-            columnWidth:10
+            columnWidth:1
         }
     });
 }

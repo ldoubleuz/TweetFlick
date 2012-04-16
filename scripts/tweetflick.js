@@ -4,6 +4,16 @@ function Word(word){
     this.count = 0;
 }
 
+// taken from http://stackoverflow.com/questions/7627000/javascript-convert-string-to-safe-class-name-for-css/7627603#7627603
+function makeSafeForCSS(name) {
+    return name.replace(/[^a-z0-9]/g, function(s) {
+        var c = s.charCodeAt(0);
+        if (c == 32) return '-';
+        if (c >= 65 && c <= 90) return '_' + s.toLowerCase();
+        return '__' + ('000' + c.toString(16)).slice(-4);
+    });
+}
+
 jQuery.fn.appendSlide = function($appendMe, duration){
     $(this).each(function(){
         var $appendTo = $(this);
@@ -35,7 +45,6 @@ function performSearch(e) {
 	navigator.geolocation.getCurrentPosition(
         function(position){
             fetchTweets(rawTerm, position);
-            fetchFlickrPhotos(rawTerm);
         }, 
         function(){
             //console.log("error in getting location");
@@ -43,7 +52,6 @@ function performSearch(e) {
                 $("<p/>").text("error in getting location, searching all tweets...")
             );
             fetchTweets(rawTerm, null);
-            fetchFlickrPhotos(rawTerm);
         }
     );
 }
@@ -72,13 +80,13 @@ function fetchTweets(rawTerm, position) {
            __keys__     __values__
            <word>           corresponding Word object
     */
-    var wordData = new Object();
+    var wordData = {};
     
      /*
            __keys__     __values__
             <id_str>       the tweet data object associated with this id_str
     */
-    var tweetIdData = new Object();
+    var tweetIdData = {};
     
     /*
         an array of string words in order from most to least common
@@ -110,6 +118,7 @@ function fetchTweets(rawTerm, position) {
 
                 //commenting out conditional 
                 //if(readyPages >= maxPages){
+                    commonWords.length = 0;
                     commonWords = getMostCommonWords(wordData);
                     /*console.log("commonWords");
                     console.log(commonWords);
@@ -120,6 +129,15 @@ function fetchTweets(rawTerm, position) {
                     $("#words-col").empty();
                     $("#words-col").append(commonWords.join(" "));
                 //}    
+                
+                if(readyPages == maxPages){
+                    console.log(commonWords);
+                    var maxWords = Math.min(commonWords.length, 10);
+                    for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
+                        var word = commonWords[wordIndex];
+                        fetchFlickrPhotos(word);
+                    }
+                }
             }
         });
     }
@@ -142,8 +160,8 @@ function processTweets(data, wordData, tweetIdData) {
 		/*if(tweet.geo != null) {
 			place = tweet.geo.coordinates[0]+", "+tweet.geo.coordinates[1]
 		}*/
-		var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time></li>";
-		//var item = "<li>"+tweet.text+"</li>"
+		//var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time></li>";
+		var item = "<li>"+tweet.text+"</li>"
         //var item = tweet.text;
 		$("#tweets-col").append(item);
         wordData = updateWordCounts(tweet, wordData, tweetIdData);
@@ -162,7 +180,7 @@ function updateWordCounts(tweet, wordData, tweetIdData){
     // removes from beginning or ends of words
     // also remove links starting with http
     // also remove unicode
-    text = text.replace(/&\w+;|\b[^\w\s@#]+\B|\B[^\w\s@#]+\b|\bhttp.*\B/g, "");
+    text = text.replace(/&\w+;|\b[^\w\s]+\B|\B[^\w\s]+\b|\bhttp.*\B/g, "");
     //split on whitespace
     text = text.split(/\s/);
     var word;
@@ -359,8 +377,10 @@ function makeStopWordsSet(){
     return stopWordsSet;
 }
 
-function fetchFlickrPhotos(rawTerm){
+function fetchFlickrPhotos(rawTerm, size){
     var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
+    var perpage = 5;
+    size=Math.floor((Math.random()*200)+75);
     var url = "http://api.flickr.com/services/rest/?" +
                 "method=flickr.photos.search" +
                 "&api_key=9d75266f03a55de4ee6e51e48cd49b9d" +
@@ -368,12 +388,13 @@ function fetchFlickrPhotos(rawTerm){
                 "&safe_search=1" +  // 1 is "safe"
                 "&content_type=1" +  // 1 is "photos only"
                 "&sort=relevance" +  // another good one is "interestingness-desc"
-                "&per_page=26"+
+                "&per_page="+perpage.toString()+
                 "&extras=description,owner_name"+
                 "&format=json&jsoncallback=?"; // used to do JSON request
     console.log(url);            
                
-    var $loadingmessage = $("<p/>").attr("id", "loading-photos").text("loading photos...").hide();
+    var $loadingmessage = $("<p/>").attr("id", "loading-photos"+makeSafeForCSS(rawTerm))
+                                .text("loading photos for "+rawTerm+"...").hide();
     $loadingmessage.append($("<img />").attr("src", "images/snake_loader.gif"));
     $("#messages").appendSlide($loadingmessage);
                
@@ -381,7 +402,7 @@ function fetchFlickrPhotos(rawTerm){
         url: url,
         dataType: "jsonp",
         success: function(data) {
-            console.log("Flickr data returned!");
+            console.log("Flickr data returned!" + searchTerm);
             console.log(data);
             if(data.stat == "fail"){
                 $("#messages").append(
@@ -389,7 +410,7 @@ function fetchFlickrPhotos(rawTerm){
                 );
             }
             else{
-                processFlickrPhotos(data);
+                processFlickrPhotos(data, rawTerm, size);
             }
         },
         error: function(data, error) {
@@ -398,18 +419,14 @@ function fetchFlickrPhotos(rawTerm){
             $("#messages").append(
                 $("<p />").text("error while fetching Flickr: "+error)
             );
-            $("#loading-photos").slideUp("fast", function(){
-                $("#loading-photos").remove();
+            $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
+                $(this).remove();
             });
         }
     });    
 }
 
-function processFlickrPhotos(data){
-    /*$container.find(".photo-frame").each(function(){
-        removePhoto($(this));
-    });*/
-    
+function processFlickrPhotos(data, rawTerm, size){
     if(!(data.photos && data.photos.photo)){
         console.log("no photos to process!");
         return;
@@ -417,12 +434,17 @@ function processFlickrPhotos(data){
     
     var photoDataArray = data.photos.photo;
     if(photoDataArray.length == 0){
-        $("#messages").appendSlide(
-            $("<p />").text("No Flickr photos available. :(")
-        );    
-        $("#loading-photos").slideUp("fast", function(){
-            $("#loading-photos").remove();
+        var $error = $("<p />").text("No Flickr photos available for "+rawTerm+". :(")
+        $("#messages").appendSlide($error);    
+        $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
+            $(this).remove();
         });
+        setTimeout(function(){
+            $error.slideUp(function(){
+                $(this).remove();
+            });
+            
+        }, 500);
         return;
     }
     
@@ -431,44 +453,47 @@ function processFlickrPhotos(data){
     var loadedImages = 0;
     
     for(var i in photoDataArray){
-        var sizes = ["small", "medium", "large"]; 
-        var size = sizes[Math.floor(Math.random()*sizes.length)];
         photoData = photoDataArray[i];
         
         var $image = $("<img />").addClass("flickr-img");
-        var $link = $("<a />").attr({
+        var $link = $("<a />").addClass("photo-link");
+        $link.attr({
             href: constructFlickrLinkURL(photoData),
             target: "_blank"
         });
-        $link.addClass("photo-link");
         $link.append($image);
         
-        var $photoWrapper = $("<div/>").addClass("photo-frame");
+        var $photoWrapper = $("<div/>").addClass("photo-frame").addClass(makeSafeForCSS(rawTerm));
         $photoWrapper.append($link);
+        
+        var $wordLabel = $("<div/>").addClass("word-label").text(rawTerm);
+        $photoWrapper.append($wordLabel);
         
         //temporarily hide and append to document so that .closest() call works
         $photoWrapper.addClass("hidden");
         $("body").append($photoWrapper);
         
         $image.load(function(){
-            console.log($(this).parents());
+            //console.log($(this).parents());
             var $wrapper = $(this).closest(".photo-frame");
             // remove from document so that we may place it in the correct container
             $wrapper.detach();
             // remember to make the thing visible again!
             $wrapper.removeClass("hidden");
             
-            resizeOversizedPhoto($(this), 180);
+            resizeOversizedPhoto($(this), size);
             cropPhotoSquare($(this));
             $container.append($wrapper).isotope('appended', $wrapper);
             //$("#words-col-wrap").prepend($wrapper);
             loadedImages += 1
             if(loadedImages >= totalImages){
-                $("#loading-photos").slideUp("fast", function(){
-                    $("#loading-photos").remove();
+                $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
+                    $(this).remove();
                 });
             }
         });
+        
+        //sizes = ["small", "medium", "large"]; 
         $image.attr("src", constructFlickrImageURL(photoData, size));
     }
 }
@@ -531,13 +556,13 @@ function constructFlickrImageURL(photo, size){
            "_"+photo.secret;
            
     //default to small
-    if(!size || size == "small"){
-        url = url+"_s.jpg"; // adding _s.jpg makes it a small thumbnail square
+    if(!size || size == "small" || size <= 75){
+        url = url+"_s.jpg"; // adding _s.jpg makes it a small thumbnail square (75x75)
     }
-    else if(size == "medium"){
-        url = url+"_q.jpg"; // adding _q.jpg makes it a bigger thumbnail square
+    else if(size == "medium" || (size > 75 && size <= 150)){
+        url = url+"_q.jpg"; // adding _q.jpg makes it a bigger thumbnail square (150x150)
     }
-    else if(size == "large"){
+    else if(size == "large" || size > 150){
         url = url+"_m.jpg"; // adding _m.jpg makes it a medium size with 240 on the longest side
     }
     else{

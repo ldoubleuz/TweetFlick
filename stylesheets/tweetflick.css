@@ -70,11 +70,19 @@ header{
 
 .photo-frame:hover{
     background-color:white;
-    border:1px red solid;
 }
 
 .photo-frame:hover img{
     opacity:.5;
+}
+
+.word-label{
+    width:100%;
+    text-align:center;
+    background-color: rgba(0,0,0,.7);
+    color:white;
+    font-size:1em;
+    word-wrap:break-word;
 }
 
 #photos img{

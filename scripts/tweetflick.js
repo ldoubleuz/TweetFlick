@@ -24,13 +24,20 @@ jQuery.fn.appendSlide = function($appendMe, duration){
     return $(this);
 };
 
+// simply creates a loader gif <img> object for the caller to utilize
+function makeLoaderGif(){
+    return $("<img />").attr("src", "images/snake_loader.gif");
+}
+
 // Get user via HTML5 geolocation api
 function performSearch(e) {
     e.preventDefault();
     var rawTerm = $("#search-input").val();
     $("#messages").empty();
     $("#messages").appendSlide(
-        $("<p/>").text("searching for: '"+rawTerm+"'")
+        $("<p/>").text("searching Twitter for '"+rawTerm+"'... ")
+                .attr("id", "searching-tweets-message")
+                .append(makeLoaderGif())
     );
     
     $container.isotope("remove", $container.find(".photo-frame"), function(){
@@ -49,13 +56,13 @@ function performSearch(e) {
         function(){
             //console.log("error in getting location");
             $("#messages").appendSlide(
-                $("<p/>").text("error in getting location, searching all tweets...").attr("id", "location-error")
+                $("<p/>").text("Note: there was an error in getting your location, so we are using global tweets instead.").attr("id", "location-error")
             );
             setTimeout(function(){
                 $("#location-error").slideUp(function(){
                     $(this).remove();
                 });
-            }, 1000);
+            }, 3000);
             fetchTweets(rawTerm, null);
         }
     );
@@ -137,6 +144,10 @@ function fetchTweets(rawTerm, position) {
                 
                 if(readyPages == maxPages){
                     console.log(commonWords);
+                    
+                    $("#searching-tweets-message").slideUp(function(){
+                        $(this).remove();
+                    });
                     if(commonWords.length == 0){
                         $("#messages").appendSlide($("<p/>").text("no tweets found for \""+rawTerm+"\", try another search"));
                         return;
@@ -403,8 +414,8 @@ function fetchFlickrPhotos(rawTerm, size){
     console.log(url);            
                
     var $loadingmessage = $("<p/>").attr("id", "loading-photos"+makeSafeForCSS(rawTerm))
-                                .text("loading photos for "+rawTerm+"...").hide();
-    $loadingmessage.append($("<img />").attr("src", "images/snake_loader.gif"));
+                                .text("loading Flickr photos for "+rawTerm+"... ").hide();
+    $loadingmessage.append(makeLoaderGif());
     $("#messages").appendSlide($loadingmessage);
                
     $.ajax({

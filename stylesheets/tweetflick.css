@@ -76,6 +76,10 @@ header{
     opacity:.5;
 }
 
+a.photo-link{
+    text-decoration: none;
+}
+
 .word-label{
     width:100%;
     text-align:center;

@@ -49,8 +49,13 @@ function performSearch(e) {
         function(){
             //console.log("error in getting location");
             $("#messages").appendSlide(
-                $("<p/>").text("error in getting location, searching all tweets...")
+                $("<p/>").text("error in getting location, searching all tweets...").attr("id", "location-error")
             );
+            setTimeout(function(){
+                $("#location-error").slideUp(function(){
+                    $(this).remove();
+                });
+            }, 1000);
             fetchTweets(rawTerm, null);
         }
     );
@@ -110,7 +115,7 @@ function fetchTweets(rawTerm, position) {
             success: function(data) {
                 console.log("tweet success", data);
                 if(readyPages == 0){
-                    $("#tweets-col").empty();
+                    //$("#tweets-col").empty();
                 }
                 readyPages += 1;
                 
@@ -126,12 +131,16 @@ function fetchTweets(rawTerm, position) {
                     console.log(wordData);
                     console.log("tweets");
                     console.log(tweetIdData);*/
-                    $("#words-col").empty();
-                    $("#words-col").append(commonWords.join(" "));
+                    //$("#words-col").empty();
+                    //$("#words-col").append(commonWords.join(" "));
                 //}    
                 
                 if(readyPages == maxPages){
                     console.log(commonWords);
+                    if(commonWords.length == 0){
+                        $("#messages").appendSlide($("<p/>").text("no tweets found for \""+rawTerm+"\", try another search"));
+                        return;
+                    }
                     var maxWords = Math.min(commonWords.length, 10);
                     for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
                         var word = commonWords[wordIndex];
@@ -161,9 +170,9 @@ function processTweets(data, wordData, tweetIdData) {
 			place = tweet.geo.coordinates[0]+", "+tweet.geo.coordinates[1]
 		}*/
 		//var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time></li>";
-		var item = "<li>"+tweet.text+"</li>"
+		//var item = "<li>"+tweet.text+"</li>"
         //var item = tweet.text;
-		$("#tweets-col").append(item);
+		//$("#tweets-col").append(item);
         wordData = updateWordCounts(tweet, wordData, tweetIdData);
 	}
     //console.log(data.results.length);
@@ -215,7 +224,7 @@ function getMostCommonWords(wordData){
     var value;
     //first convert the word counts in the object to an array
     for(var key in wordData){
-        count_value = wordData[key].count;
+        var count_value = wordData[key].count;
         keyVals[keyVals.length] = {"word":key, "count":count_value};                        
     }
     //console.log(keyVals);
@@ -467,7 +476,7 @@ function processFlickrPhotos(data, rawTerm, size){
         $photoWrapper.append($link);
         
         var $wordLabel = $("<div/>").addClass("word-label").text(rawTerm);
-        $photoWrapper.append($wordLabel);
+        $link.append($wordLabel);
         
         //temporarily hide and append to document so that .closest() call works
         $photoWrapper.addClass("hidden");

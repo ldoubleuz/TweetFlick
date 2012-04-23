@@ -107,7 +107,7 @@ function fetchTweets(rawTerm, position) {
     */
     var commonWords = [];
     var readyPages = 0;
-    var maxPages = 9;
+    var maxPages = 5;
     var tweetsPerPage = 100;
     var url
     for(var page = 1; page <= maxPages; page++){
@@ -122,7 +122,7 @@ function fetchTweets(rawTerm, position) {
             url: url,
             dataType: "jsonp",
             success: function(data) {
-                console.log("tweet success", data);
+                console.log("tweet success", page, data);
                 if(readyPages == 0){
                     //$("#tweets-col").empty();
                 }

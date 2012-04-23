@@ -1,7 +1,7 @@
 html, body{
     position:relative;
-    background-color:#ffffff;
-    /*background: transparent url('../images/roughclothcream.png') repeat;*/
+    /*background-color:#ffffff;*/
+    background: transparent url('../images/scribble_light.png') repeat;*/
     padding: 0;
     margin: 0;
     width: 100%;
@@ -11,10 +11,14 @@ html, body{
     height:100%;
     min-height:100%;
     
-    font-family: "Lucida Sans Unicode", "Lucida Grande",  Verdana, Helvetica, Arial, sans-serif; 
+    font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Helvetica, Arial, sans-serif; 
     font-size: 100%;
     line-height: 1.4;
     text-rendering: optimizeLegibility;
+}
+
+body{
+    padding-top: 3.5em;
 }
 
 .preloaded{
@@ -25,15 +29,53 @@ html, body{
     visibility: hidden;
 }
 
-#main-wrapper{
+.body-container{
     margin:auto;
     width:80%;
     max-width:1200px;
+}
+
+#main-wrapper{
     height:100%;
 }
 
-header{
-    padding-top: 1em;
+#header-bar{
+    z-index:999;
+    position:fixed;
+    top:0;
+    left:0;
+    padding: 1em 0;
+    height:1.5em;
+    width: 100%;
+    
+    background-image: linear-gradient(bottom, rgb(123,170,196) 37%, rgb(159,194,212) 75%);
+    background-image: -o-linear-gradient(bottom, rgb(123,170,196) 37%, rgb(159,194,212) 75%);
+    background-image: -moz-linear-gradient(bottom, rgb(123,170,196) 37%, rgb(159,194,212) 75%);
+    background-image: -webkit-linear-gradient(bottom, rgb(123,170,196) 37%, rgb(159,194,212) 75%);
+    background-image: -ms-linear-gradient(bottom, rgb(123,170,196) 37%, rgb(159,194,212) 75%);
+
+    background-image: -webkit-gradient(
+        linear,
+        left bottom,
+        left top,
+        color-stop(0.37, rgb(123,170,196)),
+        color-stop(0.75, rgb(159,194,212))
+    );
+    
+    box-shadow: 0 5px 10px -5px black;
+}
+
+#logo{
+    position:absolute;
+    top:5px;
+    color:white;
+    font-weight:bold;
+    font-size:2em;
+}
+
+#search-form{
+    height:1.2em;
+    float:right;
 }
 
 #search-input{
@@ -47,15 +89,38 @@ header{
     background-color:#CC816B;
     color:white;
     box-shadow: grey 1px 1px 2px;
+    
+    -moz-transition: 0.2s; /* Firefox 4 */
+    -webkit-transition:  0.2s; /* Safari and Chrome */
+    -o-transition: 0.2s; /* Opera */
+    -ms-transition: 0.2s;
+    transition: 0.2s;
+}
+
+#search-button:hover{
+    background-color:#be6045;
+}
+
+#search-button:active{
+    margin-bottom:1px;
+}
+
+noscript p{
+    text-align:center;
+    border: 1px dashed grey;
+    background-color:#ECA48F;
+    padding:5px;
 }
 
 #photos{
     width:100%;
-    border:1px dashed grey;
-    transition: 0.2s;
+    border-top:1px solid #c6c6c6;
+    
     -moz-transition: 0.2s; /* Firefox 4 */
     -webkit-transition:  0.2s; /* Safari and Chrome */
     -o-transition: 0.2s; /* Opera */
+    -ms-transition: 0.2s;
+    transition: 0.2s;
 }
 
 .photo-frame{
@@ -68,12 +133,26 @@ header{
     border-radius:3px;
 }
 
-.photo-frame:hover{
-    background-color:white;
+.photo-frame img{
+  -webkit-transition: opacity 0.2s;
+     -moz-transition: opacity 0.2s;
+      -ms-transition: opacity 0.2s;
+       -o-transition: opacity 0.2s;
+          transition: opacity 0.2s;
 }
 
 .photo-frame:hover img{
     opacity:.5;
+}
+
+.photo-frame:hover .word-label,
+.word-label:hover{
+    background-color:#CC816B;
+}
+
+.photo-frame:hover .word-label:before,
+.word-label:before:hover{
+    border-bottom-color:#dba798;
 }
 
 a.photo-link{
@@ -81,12 +160,31 @@ a.photo-link{
 }
 
 .word-label{
+    position:relative;
     width:100%;
     text-align:center;
-    background-color: rgba(0,0,0,.7);
+    background-color: grey;
     color:white;
     font-size:1em;
     word-wrap:break-word;
+    border-radius:3px;
+    
+    -webkit-transition: background-color 0.2s;
+     -moz-transition: background-color 0.2s;
+      -ms-transition: background-color 0.2s;
+       -o-transition: background-color 0.2s;
+          transition: background-color 0.2s;
+}
+
+.word-label:before{
+    content:"";
+    position:absolute;
+    border-color: transparent;
+    border-style:solid;
+    border-width: .4em;
+    border-bottom-color:rgba(153,155,157,.9);
+    bottom:100%;
+    left:5%;
 }
 
 #photos img{

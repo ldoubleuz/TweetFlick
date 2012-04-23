@@ -165,6 +165,7 @@ a.photo-link{
     text-align:center;
     background-color: grey;
     color:white;
+    /*color:white;*/
     font-size:1em;
     word-wrap:break-word;
     border-radius:3px;

@@ -1,5 +1,3 @@
-// :D
-
 function Word(word){
     this.word = word;
     this.tweet_ids_set = {};
@@ -399,10 +397,15 @@ function makeStopWordsSet(){
     return stopWordsSet;
 }
 
+// TODO: size parameter currently unused, will be used once scaling/weighting is implemented
 function fetchFlickrPhotos(rawTerm, size){
     var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
-    var perpage = 5;
+    var perpage = 50;
+    // temporarily just randomizing size of a given photo
+    // TODO: actually use size parameter for weighting
     size=Math.floor((Math.random()*200)+75);
+    console.log("size:", size);
+    
     var url = "http://api.flickr.com/services/rest/?" +
                 "method=flickr.photos.search" +
                 "&api_key=9d75266f03a55de4ee6e51e48cd49b9d" +
@@ -453,7 +456,7 @@ function processFlickrPhotos(data, rawTerm, size){
         console.log("no photos to process!");
         return;
     }
-    
+    console.log(data);
     var photoDataArray = data.photos.photo;
     if(photoDataArray.length == 0){
         var $error = $("<p />").text("No Flickr photos available for "+rawTerm+". :(")
@@ -466,16 +469,30 @@ function processFlickrPhotos(data, rawTerm, size){
                 $(this).remove();
             });
             
-        }, 500);
+        }, 1500);
         return;
     }
     
     var photoData;
-    var totalImages = photoDataArray.length;
-    var loadedImages = 0;
     
-    for(var i in photoDataArray){
-        photoData = photoDataArray[i];
+    // images already loaded
+    var loadedImages = 0;
+    // total number of images to load
+    var totalImages = 5;
+    for(var i = 0; i < totalImages; i++){    
+        // randomize pictures by picking random index (using partial Knuth shuffle)
+        var randomIndex = Math.floor(Math.random()*(photoDataArray.length-i))+i;
+        if(!(0 <= randomIndex && randomIndex < photoDataArray.length)){
+            console.log("error: randomly picked index "+randomIndex.toString()+
+                        " is out of bounds of array: ", photoDataArray); 
+            continue;
+        }
+        photoData = photoDataArray[randomIndex];
+
+        // swapping
+        var tempPhotoData = photoDataArray[i];
+        photoDataArray[i] = photoDataArray[randomIndex];
+        photoDataArray[randomIndex] = tempPhotoData;
         
         var $image = $("<img />").addClass("flickr-img");
         var $link = $("<a />").addClass("photo-link");
@@ -550,7 +567,7 @@ function cropPhotoSquare($image, targetSize){
     
     var maxSize = Math.min(imgWidth, imgHeight);
     if(targetSize == null || targetSize <= 0 || targetSize > maxSize){
-        console.log("targetsize: ", targetSize);
+        //console.log("targetsize: ", targetSize);
         targetSize = maxSize;
     }
     

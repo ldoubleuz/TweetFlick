@@ -1,3 +1,5 @@
+// :D
+
 function Word(word){
     this.word = word;
     this.tweet_ids_set = {};

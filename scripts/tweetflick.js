@@ -1,5 +1,3 @@
-// :D
-
 function Word(word){
     this.word = word;
     this.tweet_ids_set = {};
@@ -107,7 +105,7 @@ function fetchTweets(rawTerm, position) {
     */
     var commonWords = [];
     var readyPages = 0;
-    var maxPages = 9;
+    var maxPages = 5;
     var tweetsPerPage = 100;
     var url
     for(var page = 1; page <= maxPages; page++){
@@ -401,7 +399,7 @@ function makeStopWordsSet(){
 
 function fetchFlickrPhotos(rawTerm, size){
     var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
-    var perpage = 5;
+    var perpage = 50;
     size=Math.floor((Math.random()*200)+75);
     var url = "http://api.flickr.com/services/rest/?" +
                 "method=flickr.photos.search" +
@@ -432,7 +430,7 @@ function fetchFlickrPhotos(rawTerm, size){
                 );
             }
             else{
-                processFlickrPhotos(data, rawTerm, size);
+                processFlickrPhotos(data, rawTerm, size, perpage);
             }
         },
         error: function(data, error) {
@@ -448,12 +446,12 @@ function fetchFlickrPhotos(rawTerm, size){
     });    
 }
 
-function processFlickrPhotos(data, rawTerm, size){
+function processFlickrPhotos(data, rawTerm, size, perpage){
     if(!(data.photos && data.photos.photo)){
         console.log("no photos to process!");
         return;
     }
-    
+    console.log(data);
     var photoDataArray = data.photos.photo;
     if(photoDataArray.length == 0){
         var $error = $("<p />").text("No Flickr photos available for "+rawTerm+". :(")
@@ -471,11 +469,21 @@ function processFlickrPhotos(data, rawTerm, size){
     }
     
     var photoData;
-    var totalImages = photoDataArray.length;
-    var loadedImages = 0;
     
-    for(var i in photoDataArray){
-        photoData = photoDataArray[i];
+    // images already loaded
+    var loadedImages = 0;
+    // total number of images to load
+    var totalImages = 5;
+    for(var i =0; i < totalImages; i++){
+        // randomize pictures by picking random index
+        var randomIndex = Math.floor(Math.random()*(perpage-i))+i;
+
+        photoData = photoDataArray[randomIndex];
+
+        // swapping
+        var tempPhotoData = photoDataArray[i];
+        photoDataArray[i] = photoDataArray[randomIndex];
+        photoDataArray[randomIndex] = tempPhotoData;
         
         var $image = $("<img />").addClass("flickr-img");
         var $link = $("<a />").addClass("photo-link");

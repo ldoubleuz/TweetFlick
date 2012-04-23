@@ -83,8 +83,8 @@ a.photo-link{
 .word-label{
     width:100%;
     text-align:center;
-    background-color: rgba(0,0,0,.7);
-    color:white;
+    background-color: grey;
+    /*color:white;*/
     font-size:1em;
     word-wrap:break-word;
 }

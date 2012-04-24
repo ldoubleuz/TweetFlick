@@ -1,3 +1,9 @@
+@font-face {
+  font-family: 'Armata';
+  font-style: normal;
+  src: url('../fonts/Armata-Regular.ttf') format('truetype');
+}
+
 html, body{
     position:relative;
     /*background-color:#ffffff;*/
@@ -11,7 +17,7 @@ html, body{
     height:100%;
     min-height:100%;
     
-    font-family: "Lucida Sans Unicode", "Lucida Grande", Verdana, Helvetica, Arial, sans-serif; 
+    font-family: "Armata", "Lucida Sans Unicode", "Lucida Grande", Verdana, Helvetica, Arial, sans-serif; 
     font-size: 100%;
     line-height: 1.4;
     text-rendering: optimizeLegibility;

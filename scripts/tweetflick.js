@@ -419,7 +419,7 @@ function fetchFlickrPhotos(rawTerm, size){
     console.log(url);            
                
     var $loadingmessage = $("<p/>").attr("id", "loading-photos"+makeSafeForCSS(rawTerm))
-                                .text("loading Flickr photos for "+rawTerm+"... ").hide();
+                                .text("loading Flickr photos for \""+rawTerm+"\"... ").hide();
     $loadingmessage.append(makeLoaderGif());
     $("#messages").appendSlide($loadingmessage);
                
@@ -525,7 +525,7 @@ function processFlickrPhotos(data, rawTerm, size){
             $container.append($wrapper).isotope('appended', $wrapper);
             //$("#words-col-wrap").prepend($wrapper);
             loadedImages += 1
-            if(loadedImages >= totalImages){
+            if(loadedImages >= totalImages || loadedImages >= photoDataArray.length){
                 $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
                     $(this).remove();
                 });

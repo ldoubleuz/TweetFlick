@@ -22,11 +22,23 @@
                 </span>
                 
                 <form id="search-form">
-                    <input type="text" id="search-input" name="search_input" placeholder="Search for tweets"/>
+                    <input type="text" id="search-input" name="search_input" 
+                            placeholder="Search for tweets talking about..."/>
                     <input type="submit" id="search-button" value="Search" />
                 </form>
-            </div>    
+            </div>  
         </header>
+        <div id="common-word-tab" title="Click to dismiss!">
+            <div id="common-word-content">
+                <header>Most common words in Tweets talking about  
+                    <span id="common-word-search-term">
+                    </span>:
+                </header>
+                <ol id="common-word-list">
+                </ol>
+            </div>
+        </div>
+        
         <!-- wrapper for scrolling with fixed header correctly -->
         <div id="main-wrapper">
             <!-- wrapper for limiting width -->
@@ -40,7 +52,9 @@
                          enable it or try upgrading to a browser like 
                          <a href="https://www.google.com/chrome">
                             Google Chrome
-                        </a>! &#9786;
+                        </a>! :)
+                        <br/>
+                        (Note: If you're using NoScript, remember to unblock Twitter and Flickr too after you attempt a search!)
                         </p>
                     </noscript>
                 </div>
@@ -56,8 +70,12 @@
                 <div id="tweets-col"></div>
             </div>
             -->
-            
+            <footer id="disclaimer" title="Click to dismiss!">
+            Note: This site is a fun project and is not affiliated with Twitter or Flickr in any way! :)
+            <a class="remove-popup-link">&times;</a>
+            </footer>
         </div>
         <img class="preloaded" src="images/snake_loader.gif"/>
+        
 	</body>
 </html>

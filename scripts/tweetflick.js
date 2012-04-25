@@ -29,16 +29,55 @@ function makeLoaderGif(){
     return $("<img />").attr("src", "images/snake_loader.gif");
 }
 
+function makeLoadPercent(){
+    return $("<span/>").addClass("load-percent").text("0%");
+}
+
+function getPercentStr(numerator, denominator){
+    var fraction = numerator/denominator;
+    var percent = Math.round(fraction * 100);
+    var percentString = percent.toString() + "%";
+    return percentString;
+}
+
 // Get user via HTML5 geolocation api
 function performSearch(e) {
     e.preventDefault();
     var rawTerm = $("#search-input").val();
+    
+    // unfocus from search bar to allow scrolling with keys
+    $("#search-input").blur();
+    
+    // scroll to top of page
+    $('body,html').animate({
+        scrollTop: 0
+	}, 800);
+            
     $("#messages").empty();
-    $("#messages").appendSlide(
-        $("<p/>").text("searching Twitter for '"+rawTerm+"'... ")
-                .attr("id", "searching-tweets-message")
-                .append(makeLoaderGif())
-    );
+    
+    var $searchMessage = $("<p/>").attr("id", "searching-tweets-message");
+    
+    if(rawTerm.length == 0){
+        $searchMessage.text("searching Twitter for tweets talking about anything... ")
+    }
+    else{
+        $searchMessage.text("searching Twitter for tweets talking about \'"+rawTerm+"\'... ")
+    }
+     
+    $searchMessage.append(makeLoadPercent)
+                .append(makeLoaderGif()); 
+                
+    $("#messages").appendSlide($searchMessage);
+    
+    if(rawTerm.length == 0){
+        $("#common-word-search-term").text("anything"); 
+    }
+    else{
+        $("#common-word-search-term").text("\'"+rawTerm+"\'");
+    }    
+
+    $("#common-word-tab").fadeIn(100);
+    $("#no-common-word-error").fadeOut(100);
     
     $container.isotope("remove", $container.find(".photo-frame"), function(){
         $container.isotope("reLayout");
@@ -126,25 +165,40 @@ function fetchTweets(rawTerm, position) {
                 }
                 readyPages += 1;
                 
+                $("#searching-tweets-message").find(".load-percent")
+                    .text(getPercentStr(readyPages, maxPages));
+               
                 processTweets(data, wordData, tweetIdData);
 
-                //commenting out conditional 
-                //if(readyPages >= maxPages){
-                    commonWords.length = 0;
-                    commonWords = getMostCommonWords(wordData);
-                    /*console.log("commonWords");
-                    console.log(commonWords);
-                    console.log("wordData");
-                    console.log(wordData);
-                    console.log("tweets");
-                    console.log(tweetIdData);*/
-                    //$("#words-col").empty();
-                    //$("#words-col").append(commonWords.join(" "));
-                //}    
                 
+                commonWords.length = 0;
+                commonWords = getMostCommonWords(wordData);
+                      
+                
+                var maxWords = Math.min(commonWords.length, 10);
+                
+                $("#common-word-list").slideUp(function(){
+                    $(this).empty();
+                
+                    if(commonWords.length == 0){
+                        $(this).append(
+                            $("<p/>").text("Nothing, apparently!")
+                        );
+                    }
+                    else{
+                        // update words list visual
+                        for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
+                            var word = commonWords[wordIndex];
+                            var $wordListItem = $("<li/>").text(word);
+                            $(this).append($wordListItem);
+                        }
+                    }
+                });
+                
+                // perform photos search
                 if(readyPages == maxPages){
                     console.log(commonWords);
-                    
+                    $("#common-word-list").slideDown();
                     $("#searching-tweets-message").slideUp(function(){
                         $(this).remove();
                     });
@@ -152,7 +206,6 @@ function fetchTweets(rawTerm, position) {
                         $("#messages").appendSlide($("<p/>").text("no tweets found for \""+rawTerm+"\", try another search"));
                         return;
                     }
-                    var maxWords = Math.min(commonWords.length, 10);
                     for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
                         var word = commonWords[wordIndex];
                         fetchFlickrPhotos(word);
@@ -276,117 +329,49 @@ function updateStopWords(stopWordsSet, stopWordsList){
 }
 
 function makeStopWordsSet(){
-    var stopWords = ['a', "a's", 'able', 'about', 'above',
-            'according', 'accordingly', 'across', 'actually', 'after',
-            'afterwards', 'again', 'against', "ain't", 'all',
-            'allow', 'allows', 'almost', 'alone', 'along',
-            'already', 'also', 'although', 'always', 'am',
-            'among', 'amongst', 'an', 'and', 'another',
-            'any', 'anybody', 'anyhow', 'anyone', 'anything',
-            'anyway', 'anyways', 'anywhere', 'apart', 'appear',
-            'appreciate', 'appropriate', 'are', "aren't", 'around',
-            'as', 'aside', 'ask', 'asking', 'associated',
-            'at', 'available', 'away', 'awfully', 'be',
-            'became', 'because', 'become', 'becomes', 'becoming',
-            'been', 'before', 'beforehand', 'behind', 'being',
-            'believe', 'below', 'beside', 'besides', 'best',
-            'better', 'between', 'beyond', 'both', 'brief',
-            'but', 'by', "c'mon", "c's", 'came',
-            'can', "can't", 'cannot', 'cant', 'cause',
-            'causes', 'certain', 'certainly', 'changes', 'clearly',
-            'co', 'com', 'come', 'comes', 'concerning',
-            'consequently', 'consider', 'considering', 'contain', 'containing',
-            'contains', 'corresponding', 'could', "couldn't", 'course',
-            'currently', 'definitely', 'described', 'despite', 'did',
-            "didn't", 'different', 'do', 'does', "doesn't", "doesnt", "don't", "dont",
-            'doing', "don't", 'done', 'down', 'downwards',
-            'during', 'each', 'edu', 'eg', 'eight',
-            'either', 'else', 'elsewhere', 'enough', 'entirely',
-            'especially', 'et', 'etc', 'even', 'ever',
-            'every', 'everybody', 'everyone', 'everything', 'everywhere',
-            'ex', 'exactly', 'example', 'except', 'far',
-            'few', 'fifth', 'first', 'five', 'followed',
-            'following', 'follows', 'for', 'former', 'formerly',
-            'forth', 'four', 'from', 'further', 'furthermore',
-            'get', 'gets', 'getting', 'given', 'gives',
-            'go', 'goes', 'going', 'gone', 'got',
-            'gotten', 'had', "hadn't", 'happens',
-            'hardly', 'has', "hasn't", 'have', "haven't",
-            'having', 'he', "he'd", "he'll", "he's",
-            'hence', 'her', 'here',
-            "here's", 'hereafter', 'hereby', 'herein', 'hereupon',
-            'hers', 'herself', 'hi', 'him', 'himself',
-            'his', 'hither', 'hopefully', 'how', "how's",
-            'howbeit', 'however', 'i', "i'd", "i'll",
-            "i'm", "i've", 'ie', 'if', 'ignored',
-            'immediate', 'in', 'inasmuch', 'inc', 'indeed',
-            'indicate', 'indicated', 'indicates', 'inner', 'insofar',
-            'instead', 'into', 'inward', 'is', "isn't",
-            'it', "it'd", "it'll", "it's", 'its',
-            'itself', 'just', 'keep', 'keeps', 'kept',
-            'know', 'known', 'knows', 'last', 'lately',
-            'later', 'latter', 'latterly', 'least', 'less',
-            'lest', 'let', "let's", 'like', 'liked',
-            'likely', 'little', 'look', 'looking', 'looks',
-            'ltd', 'mainly', 'many', 'may', 'maybe',
-            'me', 'mean', 'meanwhile', 'merely', 'might',
-            'more', 'moreover', 'most', 'mostly', 'much',
-            'must', "mustn't", 'my', 'myself', 'name',
-            'namely', 'nd', 'near', 'nearly', 'necessary',
-            'need', 'needs', 'neither', 'never', 'nevertheless',
-            'new', 'next', 'nine', 'no', 'nobody',
-            'non', 'none', 'noone', 'nor', 'normally',
-            'not', 'nothing', 'novel', 'now', 'nowhere',
-            'obviously', 'of', 'off', 'often', 'oh',
-            'ok', 'okay', 'old', 'on', 'once',
-            'one', 'ones', 'only', 'onto', 'or',
-            'other', 'others', 'otherwise', 'ought', 'our',
-            'ours', 'ourselves', 'out', 'outside', 'over',
-            'overall', 'own', 'particular', 'particularly', 'per',
-            'perhaps', 'placed', 'please', 'plus', 'possible',
-            'presumably', 'probably', 'provides', 'que', 'quite',
-            'qv', 'rather', 'rd', 're', 'really',
-            'reasonably', 'regarding', 'regardless', 'regards', 'relatively',
-            'respectively', 'right', 'said', 'same', 'saw',
-            'say', 'saying', 'says', 'second', 'secondly',
-            'see', 'seeing', 'seem', 'seemed', 'seeming',
-            'seems', 'seen', 'self', 'selves', 'sensible',
-            'sent', 'serious', 'seriously', 'seven', 'several',
-            'shall', "shan't", 'she', "she'd", "she'll",
-            "she's", 'should', "shouldn't", 'since', 'six',
-            'so', 'some', 'somebody', 'somehow', 'someone',
-            'something', 'sometime', 'sometimes', 'somewhat', 'somewhere',
-            'soon', 'sorry', 'specified', 'specify', 'specifying',
-            'still', 'sub', 'such', 'sup', 'sure',
-            "t's", 'take', 'taken', 'tell', 'tends',
-            'th', 'than', 'thank', 'thanks', 'thanx',
-            'that', "that's", 'thats', 'the', 'their',
-            'theirs', 'them', 'themselves', 'then', 'thence',
-            'there', "there's", 'thereafter', 'thereby', 'therefore',
-            'therein', 'theres', 'thereupon', 'these', 'they',
-            "they'd", "they'll", "they're", "they've", 'think',
-            'third', 'this', 'thorough', 'thoroughly', 'those',
-            'though', 'three', 'through', 'throughout', 'thru',
-            'thus', 'to', 'together', 'too', 'took',
-            'toward', 'towards', 'tried', 'tries', 'truly',
-            'try', 'trying', 'twice', 'two', 'un',
-            'under', 'unfortunately', 'unless', 'unlikely', 'until',
-            'unto', 'up', 'upon', 'us', 'use',
-            'used', 'useful', 'uses', 'using', 'usually',
-            'value', 'various', 'very', 'via', 'viz',
-            'vs', 'want', 'wants', 'was', "wasn't",
-            'way', 'we', "we'd", "we'll", "we're",
-            "we've", 'welcome', 'well', 'went', 'were',
-            "weren't", 'what', "what's", 'whatever', 'when',
-            "when's", 'whence', 'whenever', 'where', "where's",
-            'whereafter', 'whereas', 'whereby', 'wherein', 'whereupon',
-            'wherever', 'whether', 'which', 'while', 'whither',
-            'who', "who's", 'whoever', 'whole', 'whom',
-            'whose', 'why', "why's", 'will', 'willing',
-            'wish', 'with', 'within', 'without', "won't",
-            'wonder', 'would', "wouldn't", 'yes', 'yet',
-            'you', "you'd", "you'll", "you're", "youre", "you've",
-            'your', 'yours', 'yourself', 'yourselves', 'zero'];
+    var stopWords = ['a', 'about', 'above', 'after', 'again',
+        'against', 'all', 'am', 'an', 'and',
+        'any', 'are', "aren't", 'as', 'at',
+        'be', 'because', 'been', 'before', 'being',
+        'below', 'between', 'both', 'but', 'by', 'can',
+        "can't", 'cant', 'cannot', 'could', "couldn't", 'did',
+        "didn't", 'didnt', 'do', 'does', "doesn't", 'doesnt',
+        'doing', 'dont',
+        "don't", 'down', 'during', 'each', 'few',
+        'for', 'from', 'further', 
+        'get', 'gets', 'got', 'gots',
+        'had', "hadn't",
+        'has', "hasn't", 'have', "haven't", 'having',
+        'he', "he'd", 'hed', "he'll", "he's", 'hes', 'her',
+        'here', "here's", 'heres', 'hers', 'herself', 'him',
+        'himself', 'his', 'how', "how's", 'i',
+        "i'd", 'id', "i'll", 'ill', "i'm", 'im', 
+        "i've", 'ive', 'if',
+        'in', 'into', 'is', "isn't", 'isnt', 'it',
+        "it's", 'its', 'itself', 'just', "let's", 
+        'lets', 'like', 'me',
+        'more', 'most', "mustn't", 'my', 'myself',
+        'no', 'nor', 'not', 'of', 'off',
+        'on', 'once', 'only', 'or', 'other',
+        'ought', 'our', 'ours', 'ourselves', 'out',
+        'over', 'own', 'same', "shan't", 'she',
+        "she'd", "she'll", "she's", 'shes', 'should', "shouldn't",
+        'shouldnt',
+        'so', 'some', 'such', 'than', 'that',
+        "that's", 'the', 'their', 'theirs', 'them',
+        'themselves', 'then', 'there', "there's", 'theres', 'these',
+        'they', "they'd", 'theyd', "they'll", 'theyll',
+        "they're", 'theyre', "they've", 'theyve',
+        'this', 'those', 'through', 'to', 'too',
+        'under', 'until', 'up', 'very', 'was',
+        "wasn't", 'we', "we'd", "we'll", "we're",
+        "we've", 'were', "weren't", 'what', "what's",
+        'when', "when's", 'where', "where's", 'which',
+        'while', 'who', "who's", 'whom', 'why',
+        "why's", 'with', "won't", 'wont', 
+        'would', "wouldn't", 'wouldnt',
+        'you', "you'd", 'youd', "you'll", 'youll', "you're", 'youre', "you've",
+        'your', 'yours', 'yourself', 'yourselves'];
     var swears = ["fuck", "fucking", "fucked", "shit", "damn", "bitch", "nigga", "nigger"];
     var boring = ["lol", "lmao", "smh"];
     
@@ -419,8 +404,8 @@ function fetchFlickrPhotos(rawTerm, size){
     console.log(url);            
                
     var $loadingmessage = $("<p/>").attr("id", "loading-photos"+makeSafeForCSS(rawTerm))
-                                .text("loading Flickr photos for \""+rawTerm+"\"... ").hide();
-    $loadingmessage.append(makeLoaderGif());
+                                .text("loading Flickr photos for \'"+rawTerm+"\'... ").hide();
+    $loadingmessage.append(makeLoadPercent()).append(makeLoaderGif());
     $("#messages").appendSlide($loadingmessage);
                
     $.ajax({
@@ -457,6 +442,7 @@ function processFlickrPhotos(data, rawTerm, size){
         return;
     }
     console.log(data);
+    
     var photoDataArray = data.photos.photo;
     if(photoDataArray.length == 0){
         var $error = $("<p />").text("No Flickr photos available for "+rawTerm+". :(")
@@ -478,7 +464,7 @@ function processFlickrPhotos(data, rawTerm, size){
     // images already loaded
     var loadedImages = 0;
     // total number of images to load
-    var totalImages = 5;
+    var totalImages = Math.min(5, photoDataArray.length);
     for(var i = 0; i < totalImages; i++){    
         // randomize pictures by picking random index (using partial Knuth shuffle)
         var randomIndex = Math.floor(Math.random()*(photoDataArray.length-i))+i;
@@ -513,6 +499,10 @@ function processFlickrPhotos(data, rawTerm, size){
         $("body").append($photoWrapper);
         
         $image.load(function(){
+            loadedImages += 1;
+            $("#loading-photos"+makeSafeForCSS(rawTerm)).find(".load-percent")
+                    .text(getPercentStr(loadedImages, totalImages));
+                    
             //console.log($(this).parents());
             var $wrapper = $(this).closest(".photo-frame");
             // remove from document so that we may place it in the correct container
@@ -524,8 +514,8 @@ function processFlickrPhotos(data, rawTerm, size){
             cropPhotoSquare($(this));
             $container.append($wrapper).isotope('appended', $wrapper);
             //$("#words-col-wrap").prepend($wrapper);
-            loadedImages += 1
-            if(loadedImages >= totalImages || loadedImages >= photoDataArray.length){
+            
+            if(loadedImages >= totalImages){
                 $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
                     $(this).remove();
                 });
@@ -622,6 +612,9 @@ function init(){
     myData = {};
 
     myData.stopWordsSet = makeStopWordsSet();
+    $("#common-word-tab").hide();
+    $("#common-word-list").hide();
+    
     $("#search-form").submit(performSearch);
     
     $container = $("#photos");
@@ -631,6 +624,19 @@ function init(){
         masonry: {
             columnWidth:1
         }
+    });
+    
+    $("#disclaimer").click(function(){
+        $(this).animate({
+            "bottom":-100
+        }, "fast", function(){
+            $(this).remove();
+        });
+    });
+    
+    $("#common-word-tab").click(function(){
+        $("#common-word-list").slideUp(100);
+        $(this).fadeOut(100);
     });
 }
 

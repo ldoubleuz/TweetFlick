@@ -1,0 +1,1 @@
+TweetFlick is a webapp that uses the geolocation, Twitter, and Flickr APIs. Using your search term, tweets in your local area are found. The most common words in these tweets are used to pull pictures from Flickr. These pictures are meant to visually display what your search term means in your area.

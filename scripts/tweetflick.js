@@ -76,7 +76,10 @@ function performSearch(e) {
         $("#common-word-search-term").text("\'"+rawTerm+"\'");
     }    
 
+    $("#common-word-list").hide();
+    $("#common-word-content").slideDown(100);
     $("#common-word-tab").fadeIn(100);
+    
     $("#no-common-word-error").fadeOut(100);
     
     $container.isotope("remove", $container.find(".photo-frame"), function(){
@@ -182,14 +185,21 @@ function fetchTweets(rawTerm, position) {
                 
                     if(commonWords.length == 0){
                         $(this).append(
-                            $("<p/>").text("Nothing, apparently!")
+                            $("<li/>").text("Nothing, apparently!")
                         );
                     }
                     else{
                         // update words list visual
                         for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
                             var word = commonWords[wordIndex];
+                            var wordObj = wordData[word];
                             var $wordListItem = $("<li/>").text(word);
+                            var $counter = $("<span/>")
+                                    .addClass("word-count")
+                                    .text(wordObj.count.toString());
+                                    
+                            $wordListItem.append($counter);
+                            
                             $(this).append($wordListItem);
                         }
                     }
@@ -348,6 +358,7 @@ function makeStopWordsSet(){
         "i'd", 'id', "i'll", 'ill', "i'm", 'im', 
         "i've", 'ive', 'if',
         'in', 'into', 'is', "isn't", 'isnt', 'it',
+        "itll", "it'll",
         "it's", 'its', 'itself', 'just', "let's", 
         'lets', 'like', 'me',
         'more', 'most', "mustn't", 'my', 'myself',
@@ -613,6 +624,7 @@ function init(){
 
     myData.stopWordsSet = makeStopWordsSet();
     $("#common-word-tab").hide();
+    $("#common-word-content").hide();
     $("#common-word-list").hide();
     
     $("#search-form").submit(performSearch);
@@ -635,8 +647,7 @@ function init(){
     });
     
     $("#common-word-tab").click(function(){
-        $("#common-word-list").slideUp(100);
-        $(this).fadeOut(100);
+        $("#common-word-content").slideToggle();
     });
 }
 

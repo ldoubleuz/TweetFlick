@@ -222,7 +222,8 @@ a.photo-link{
     padding:.2em;
     padding-top:4em;
     width:20%;
-    background-color:rgba(249,220,143, 0.9);
+    min-width:175px;
+    background-color:rgba(249,220,143, 0.95);
     border:1px solid grey;
     z-index:5;
     text-align:left;
@@ -238,7 +239,39 @@ a.photo-link{
 }
 
 #common-word-tab:hover{
-    opacity:.7;
+    opacity:0.85;
+    padding-top:4.3em;
+}
+
+#common-word-tab header{
+    margin-bottom:5px;
+    text-align:center;
+}
+
+#common-word-list{
+    padding:0px;
+    margin:0 auto;
+    
+    list-style-type:none;
+    border-radius:4px;
+}
+
+#common-word-list li{
+    word-wrap:break-word;
+    padding:2px .5em;
+    border-bottom:1px solid rgba(150, 150, 150, 0.5);
+}
+
+#common-word-list li:nth-child(odd){
+    background-color:rgba(255, 255, 255, 0.2);
+}
+
+#common-word-list li:last-child{
+    border-bottom:1px solid transparent;
+}
+
+.word-count{
+    float:right;
 }
 
 #disclaimer{
@@ -335,4 +368,13 @@ a.photo-link{
       -ms-transition-duration: 0s;
        -o-transition-duration: 0s;
           transition-duration: 0s;
+}
+
+/* disable CSS transitions for containers with infinite scrolling*/
+.isotope.infinite-scrolling {
+  -webkit-transition: none;
+     -moz-transition: none;
+      -ms-transition: none;
+       -o-transition: none;
+          transition: none;
 }

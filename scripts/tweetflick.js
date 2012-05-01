@@ -155,7 +155,7 @@ function fetchTweets(rawTerm, position) {
     */
     var commonWords = [];
     var readyPages = 0;
-    var maxPages = 2;
+    var maxPages = 4;
     var tweetsPerPage = 100;
     var url
     for(var page = 1; page <= maxPages; page++){

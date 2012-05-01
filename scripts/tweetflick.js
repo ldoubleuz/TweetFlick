@@ -70,17 +70,20 @@ function performSearch(e) {
     $("#messages").appendSlide($searchMessage);
     
     if(rawTerm.length == 0){
-        $("#common-word-search-term").text("anything"); 
+        $("#common-words-search-term").text("anything"); 
     }
     else{
-        $("#common-word-search-term").text("\'"+rawTerm+"\'");
+        $("#common-words-search-term").text("\'"+rawTerm+"\'");
     }    
 
-    $("#common-word-list").hide();
-    $("#common-word-content").slideDown(100);
-    $("#common-word-tab").fadeIn(100);
+    $("#common-words-list").slideUp(function(){
+        $(this).empty();
+    });
+    $("#common-words-content").slideDown(100);
+    $("#common-words-tab").fadeIn(100);
+    $("#common-words-tab").slideDown(100);
     
-    $("#no-common-word-error").fadeOut(100);
+    $("#no-common-words-error").fadeOut(100);
     
     $container.isotope("remove", $container.find(".photo-frame"), function(){
         $container.isotope("reLayout");
@@ -152,7 +155,7 @@ function fetchTweets(rawTerm, position) {
     */
     var commonWords = [];
     var readyPages = 0;
-    var maxPages = 4;
+    var maxPages = 2;
     var tweetsPerPage = 100;
     var url
     for(var page = 1; page <= maxPages; page++){
@@ -185,7 +188,7 @@ function fetchTweets(rawTerm, position) {
                 
                 var maxWords = Math.min(commonWords.length, 10);
                 
-                $("#common-word-list").slideUp(function(){
+                $("#common-words-list").slideUp(function(){
                     $(this).empty();
                 
                     if(commonWords.length == 0){
@@ -204,6 +207,8 @@ function fetchTweets(rawTerm, position) {
                                     .text(wordObj.count.toString());
                                     
                             $wordListItem.append($counter);
+                            var tweets = wordObj.tweet_ids_set;
+                            console.log(tweets);
                             
                             $(this).append($wordListItem);
                         }
@@ -212,8 +217,8 @@ function fetchTweets(rawTerm, position) {
                 
                 // perform photos search
                 if(readyPages == maxPages){
-                    console.log(commonWords);
-                    $("#common-word-list").slideDown();
+                    //console.log(commonWords);
+                    $("#common-words-list").slideDown();
                     $("#searching-tweets-message").slideUp(function(){
                         $(this).remove();
                     });
@@ -418,7 +423,7 @@ function fetchFlickrPhotos(rawTerm, size){
     // temporarily just randomizing size of a given photo
     // TODO: actually use size parameter for weighting
     size=Math.floor((Math.random()*200)+75);
-    console.log("size:", size);
+    //console.log("size:", size);
     
     var url = "http://api.flickr.com/services/rest/?" +
                 "method=flickr.photos.search" +
@@ -430,7 +435,7 @@ function fetchFlickrPhotos(rawTerm, size){
                 "&per_page="+perpage.toString()+
                 "&extras=description,owner_name"+
                 "&format=json&jsoncallback=?"; // used to do JSON request
-    console.log(url);            
+    //console.log(url);            
                
     var $loadingmessage = $("<p/>").attr("id", "loading-photos"+makeSafeForCSS(rawTerm))
                                 .text("loading Flickr photos for \'"+rawTerm+"\'... ").hide();
@@ -641,9 +646,9 @@ function init(){
     myData = {};
 
     myData.stopWordsSet = makeStopWordsSet();
-    $("#common-word-tab").hide();
-    $("#common-word-content").hide();
-    $("#common-word-list").hide();
+    $("#common-words-tab").hide();
+    $("#common-words-content").hide();
+    $("#common-words-list").hide();
     
     $("#local-tweets-checkbox").attr('checked', true);
     $("#search-form").submit(performSearch);
@@ -665,8 +670,8 @@ function init(){
         });
     });
     
-    $("#common-word-tab").click(function(){
-        $("#common-word-content").slideToggle();
+    $("#common-words-tab").click(function(){
+        $("#common-words-content").slideToggle();
     });
 }
 

@@ -231,7 +231,7 @@ a.photo-link{
     border:1px solid transparent;
 }
 
-#common-word-tab{
+#common-words-tab{
     position:fixed;
     right:0;
     top:0;
@@ -255,17 +255,17 @@ a.photo-link{
     transition-duration: 0.2s;
 }
 
-#common-word-tab:hover{
+#common-words-tab:hover{
     opacity:0.85;
     padding-top:4.3em;
 }
 
-#common-word-tab header{
+#common-words-tab header{
     margin-bottom:5px;
     text-align:center;
 }
 
-#common-word-list{
+#common-words-list{
     padding:0px;
     margin:0 auto;
     
@@ -273,7 +273,7 @@ a.photo-link{
     border-radius:4px;
 }
 
-#common-word-list li{
+#common-words-list li{
     word-wrap:break-word;
     padding:2px .5em;
     border-bottom:1px solid rgba(150, 150, 150, 0.5);
@@ -285,15 +285,15 @@ a.photo-link{
     transition: background-color 0.4s;
 }
 
-#common-word-list li:nth-child(odd){
+#common-words-list li:nth-child(odd){
     background-color:rgba(255, 255, 255, 0.2);
 }
 
-#common-word-list li:last-child{
+#common-words-list li:last-child{
     border-bottom:1px solid transparent;
 }
 /*
-#common-word-list li:hover{
+#common-words-list li:hover{
     background-color:rgba(255, 255, 255, 0.7)
 }
 */

@@ -90,24 +90,29 @@ function performSearch(e) {
         $(this).unbind("load");
     });
     
-    console.log(navigator.geolocation);
-	navigator.geolocation.getCurrentPosition(
-        function(position){
-            fetchTweets(rawTerm, position);
-        }, 
-        function(){
-            //console.log("error in getting location");
-            $("#messages").appendSlide(
-                $("<p/>").text("Note: there was an error in getting your location, so we are using global tweets instead.").attr("id", "location-error")
-            );
-            setTimeout(function(){
-                $("#location-error").slideUp(function(){
-                    $(this).remove();
-                });
-            }, 3000);
-            fetchTweets(rawTerm, null);
-        }
-    );
+    if($("#local-tweets-checkbox").is(':checked')){
+        console.log(navigator.geolocation);
+        navigator.geolocation.getCurrentPosition(
+            function(position){
+                fetchTweets(rawTerm, position);
+            }, 
+            function(){
+                //console.log("error in getting location");
+                $("#messages").appendSlide(
+                    $("<p/>").text("Note: there was an error in getting your location, so we are using global tweets instead.").attr("id", "location-error")
+                );
+                setTimeout(function(){
+                    $("#location-error").slideUp(function(){
+                        $(this).remove();
+                    });
+                }, 3000);
+                fetchTweets(rawTerm, null);
+            }
+        );
+    }
+    else{
+        fetchTweets(rawTerm, null);
+    }
 }
 
 // Fetch tweets from twitter
@@ -147,7 +152,7 @@ function fetchTweets(rawTerm, position) {
     */
     var commonWords = [];
     var readyPages = 0;
-    var maxPages = 5;
+    var maxPages = 4;
     var tweetsPerPage = 100;
     var url
     for(var page = 1; page <= maxPages; page++){
@@ -243,7 +248,20 @@ function processTweets(data, wordData, tweetIdData) {
 		/*if(tweet.geo != null) {
 			place = tweet.geo.coordinates[0]+", "+tweet.geo.coordinates[1]
 		}*/
-		//var item = "<li><img class='pic' src='"+tweet.profile_image_url+"' /><a class='user' href='http://twitter.com/"+tweet.from_user+"'>"+tweet.from_user+"</a> <span class='text'>"+tweet.text+"<br /><time datetime='"+tweet.created_at+"'>"+tweet.created_at+"</time></li>";
+		/*
+        var item = "<li><img class='pic' src='"+
+                tweet.profile_image_url+
+                "' /><a class='user' href='http://twitter.com/"+
+                tweet.from_user+
+                "'>"+
+                tweet.from_user+
+                "</a> <span class='text'>"+
+                tweet.text+
+                "<br /><time datetime='"+
+                tweet.created_at+"'>"+
+                tweet.created_at+
+                "</time></li>";
+        */        
 		//var item = "<li>"+tweet.text+"</li>"
         //var item = tweet.text;
 		//$("#tweets-col").append(item);
@@ -383,7 +401,7 @@ function makeStopWordsSet(){
         'would', "wouldn't", 'wouldnt',
         'you', "you'd", 'youd', "you'll", 'youll', "you're", 'youre', "you've",
         'your', 'yours', 'yourself', 'yourselves'];
-    var swears = ["fuck", "fucking", "fucked", "shit", "damn", "bitch", "nigga", "nigger"];
+    var swears = ["ass", "fuck", "fucking", "fucked", "shit", "damn", "bitch", "bitches", "nigga", "nigger", "niggas", "niggers"];
     var boring = ["lol", "lmao", "smh"];
     
     var stopWordsSet = Object();
@@ -627,6 +645,7 @@ function init(){
     $("#common-word-content").hide();
     $("#common-word-list").hide();
     
+    $("#local-tweets-checkbox").attr('checked', true);
     $("#search-form").submit(performSearch);
     
     $container = $("#photos");

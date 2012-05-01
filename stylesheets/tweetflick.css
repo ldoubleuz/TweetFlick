@@ -51,7 +51,7 @@ body{
     top:0;
     left:0;
     padding: 1em 0;
-    height:1.5em;
+    height:1.6em;
     width: 100%;
     
     background-color: rgb(123,170,196);
@@ -81,8 +81,16 @@ body{
 }
 
 #search-form{
-    height:1.2em;
     float:right;
+    margin:0;
+    padding:0;
+    margin-top:-.3em;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 #search-input{
@@ -103,6 +111,12 @@ body{
     -o-transition: 0.2s; /* Opera */
     -ms-transition: 0.2s;
     transition: 0.2s;
+}
+
+.local-tweets-option{
+    color:white;
+    font-size:.8em;
+    vertical-align:text-top;
 }
 
 #search-button:hover{
@@ -138,7 +152,7 @@ noscript p{
     padding-bottom:3px;
     margin:0;
     border:1px transparent solid;
-    border-radius:3px;
+    border-radius:4px;
 }
 
 .photo-frame img{
@@ -176,7 +190,7 @@ a.photo-link{
     /*color:white;*/
     font-size:1em;
     word-wrap:break-word;
-    border-radius:3px;
+    border-radius:4px;
     
     -webkit-transition: background-color 0.2s;
      -moz-transition: background-color 0.2s;
@@ -198,7 +212,7 @@ a.photo-link{
 
 #photos img{
     display:inline-block;
-    border-radius:3px;
+    border-radius:4px;
     margin:0;
     padding:0;
 }

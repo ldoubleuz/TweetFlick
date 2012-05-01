@@ -215,17 +215,20 @@ a.photo-link{
     border-radius:4px;
     margin:0;
     padding:0;
+    border: 1px solid rgba(150, 150, 150, 0.5);
 }
 
 .photo-clipper{
     display:inline-block;
     position:relative;
-    border-radius:3px;
+    border-radius:4px;
     overflow:hidden;
+    border: 1px solid rgba(150, 150, 150, 0.5);
 }
 
 .photo-clipped{
     position:absolute;
+    border:1px solid transparent;
 }
 
 #common-word-tab{
@@ -274,6 +277,12 @@ a.photo-link{
     word-wrap:break-word;
     padding:2px .5em;
     border-bottom:1px solid rgba(150, 150, 150, 0.5);
+    
+    -webkit-transition: background-color 0.4s;
+    -moz-transition: background-color 0.4s;
+    -o-transition: background-color 0.4s;
+    -ms-transition: background-color 0.4s;
+    transition: background-color 0.4s;
 }
 
 #common-word-list li:nth-child(odd){
@@ -283,6 +292,11 @@ a.photo-link{
 #common-word-list li:last-child{
     border-bottom:1px solid transparent;
 }
+/*
+#common-word-list li:hover{
+    background-color:rgba(255, 255, 255, 0.7)
+}
+*/
 
 .word-count{
     float:right;

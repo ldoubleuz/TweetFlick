@@ -1,10 +1,24 @@
+"use strict";
+/* current issues/TODOs:
+     ISSUE: not properly clipping rounded corners
+     ISSUE: continuing to load previous search's Flickr AJAX requests when second search interrupts
+     TODO: utilize link between words and tweets to create visual of the tweet itself
+     TODO: infinite scroll
+*/
+
+/** struct storing information related to a given word
+**/
 function Word(word){
     this.word = word;
     this.tweet_ids_set = {};
     this.count = 0;
 }
 
-// taken from http://stackoverflow.com/questions/7627000/javascript-convert-string-to-safe-class-name-for-css/7627603#7627603
+/**
+ given any string, returns a string that is safe to use as a CSS selector
+ 
+ taken from http://stackoverflow.com/questions/7627000/javascript-convert-string-to-safe-class-name-for-css/7627603#7627603
+ **/
 function makeSafeForCSS(name) {
     return name.replace(/[^a-z0-9]/g, function(s) {
         var c = s.charCodeAt(0);
@@ -14,6 +28,9 @@ function makeSafeForCSS(name) {
     });
 }
 
+/**
+jQuery addon thats allows one to append an element and have it slide down simultaneously
+**/
 jQuery.fn.appendSlide = function($appendMe, duration){
     $(this).each(function(){
         var $appendTo = $(this);
@@ -24,15 +41,20 @@ jQuery.fn.appendSlide = function($appendMe, duration){
     return $(this);
 };
 
-// simply creates a loader gif <img> object for the caller to utilize
+/** simply creates a loader gif <img> jQuery object for the caller to utilize
+**/
 function makeLoaderGif(){
     return $("<img />").attr("src", "images/snake_loader.gif");
 }
 
+/** simply creates a <span> jQuery object to hold loading percentages
+**/
 function makeLoadPercent(){
     return $("<span/>").addClass("load-percent").text("0%");
 }
 
+/** given some fraction, returns the resulting percentage as a string
+**/
 function getPercentStr(numerator, denominator){
     var fraction = numerator/denominator;
     var percent = Math.round(fraction * 100);
@@ -40,7 +62,27 @@ function getPercentStr(numerator, denominator){
     return percentString;
 }
 
-// Get user via HTML5 geolocation api
+/** scrolls to top of page with smooth animation **/
+function scrollToTop(){
+    $('body,html').animate({
+        scrollTop: 0
+	}, 800);
+}
+
+/** when called, removes all images from Isotope container **/
+function emptyIsotopeImages(){
+    $(".flickr-img").each(function(){
+        $(this).unbind("load");
+    });
+    
+    myData.$container.isotope("remove", myData.$container.find(".photo-frame"), function(){
+        myData.$container.isotope("reLayout");
+    });
+}
+
+/** when called, handles updating all parts of UI, then
+    calling the twitter search that starts the processing
+**/
 function performSearch(e) {
     e.preventDefault();
     var rawTerm = $("#search-input").val();
@@ -48,11 +90,10 @@ function performSearch(e) {
     // unfocus from search bar to allow scrolling with keys
     $("#search-input").blur();
     
-    // scroll to top of page
-    $('body,html').animate({
-        scrollTop: 0
-	}, 800);
-            
+    //scroll to top of page
+    scrollToTop();
+    
+    // create twitter search loading message
     $("#messages").empty();
     
     var $searchMessage = $("<p/>").attr("id", "searching-tweets-message");
@@ -69,6 +110,7 @@ function performSearch(e) {
                 
     $("#messages").appendSlide($searchMessage);
     
+    // change search term visual
     if(rawTerm.length == 0){
         $("#common-words-search-term").text("anything"); 
     }
@@ -76,23 +118,19 @@ function performSearch(e) {
         $("#common-words-search-term").text("\'"+rawTerm+"\'");
     }    
 
+    // handle common word tab animating onto page
     $("#common-words-list").slideUp(function(){
         $(this).empty();
     });
     $("#common-words-content").slideDown(100);
     $("#common-words-tab").fadeIn(100);
     $("#common-words-tab").slideDown(100);
-    
     $("#no-common-words-error").fadeOut(100);
     
-    $container.isotope("remove", $container.find(".photo-frame"), function(){
-        $container.isotope("reLayout");
-    });
+    // empty Isotope container
+    emptyIsotopeImages();
     
-    $(".flickr-img").each(function(){
-        $(this).unbind("load");
-    });
-    
+    // perform search with Geolocation if option is toggled
     if($("#local-tweets-checkbox").is(':checked')){
         console.log(navigator.geolocation);
         navigator.geolocation.getCurrentPosition(
@@ -113,15 +151,16 @@ function performSearch(e) {
             }
         );
     }
+    // perform search without geolocation
     else{
         fetchTweets(rawTerm, null);
     }
 }
 
-// Fetch tweets from twitter
+/** Fetch tweets from twitter and analyze results **/
 function fetchTweets(rawTerm, position) {
     console.log("getting tweets");
-	console.log(position);
+	console.log("position", position);
     var geocode;
     if(position){
         var lat = position.coords.latitude;
@@ -135,29 +174,23 @@ function fetchTweets(rawTerm, position) {
     
 	var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
 
-	// Print coords in header
-	//$(".coords").text(lat+", "+long);
-
-    /*
-           __keys__     __values__
+    /*    __keys__     __values__
            <word>           corresponding Word object
     */
     var wordData = {};
     
-     /*
-           __keys__     __values__
+    /*   __keys__     __values__
             <id_str>       the tweet data object associated with this id_str
     */
     var tweetIdData = {};
     
-    /*
-        an array of string words in order from most to least common
-    */
+    // an array of string words in order from most to least common
     var commonWords = [];
+    
     var readyPages = 0;
     var maxPages = 4;
     var tweetsPerPage = 100;
-    var url
+    var url;
     for(var page = 1; page <= maxPages; page++){
         url = "http://search.twitter.com/search.json"+
                   "?q="+searchTerm+"+exclude:retweets"+
@@ -165,57 +198,30 @@ function fetchTweets(rawTerm, position) {
                   "&rpp="+tweetsPerPage+
                   "&lang=en"+
                   "&page="+page;
-        //console.log(url);
+                  
         $.ajax({
             url: url,
             dataType: "jsonp",
             success: function(data) {
                 console.log("tweet success", page, data);
-                if(readyPages == 0){
-                    //$("#tweets-col").empty();
-                }
+
                 readyPages += 1;
                 
                 $("#searching-tweets-message").find(".load-percent")
                     .text(getPercentStr(readyPages, maxPages));
                
-                processTweets(data, wordData, tweetIdData);
+                wordData = processTweets(data, wordData, tweetIdData);
 
-                
                 commonWords.length = 0;
-                commonWords = getMostCommonWords(wordData);
-                      
-                
+                commonWords = getMostCommonWords(wordData);   
+
                 var maxWords = Math.min(commonWords.length, 10);
                 
                 $("#common-words-list").slideUp(function(){
-                    $(this).empty();
-                
-                    if(commonWords.length == 0){
-                        $(this).append(
-                            $("<li/>").text("Nothing, apparently!")
-                        );
-                    }
-                    else{
-                        // update words list visual
-                        for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
-                            var word = commonWords[wordIndex];
-                            var wordObj = wordData[word];
-                            var $wordListItem = $("<li/>").text(word);
-                            var $counter = $("<span/>")
-                                    .addClass("word-count")
-                                    .text(wordObj.count.toString());
-                                    
-                            $wordListItem.append($counter);
-                            var tweets = wordObj.tweet_ids_set;
-                            console.log(tweets);
-                            
-                            $(this).append($wordListItem);
-                        }
-                    }
+                    updateCommonWordsList(commonWords, wordData, tweetIdData, maxWords);
                 });
                 
-                // perform photos search
+                // perform photos search & update loading messages when all tweets are loaded/processed
                 if(readyPages == maxPages){
                     //console.log(commonWords);
                     $("#common-words-list").slideDown();
@@ -236,7 +242,35 @@ function fetchTweets(rawTerm, position) {
     }
 }
 
+/** updates the common word list visual with the wordCount list items **/
+function updateCommonWordsList(commonWords, wordData, tweetIdData, maxWords){
+    var $wordList = $("#common-words-list");
+    $wordList.empty();
 
+    if(commonWords.length == 0){
+        $wordList.append(
+            $("<li/>").text("Nothing, apparently!")
+        );
+    }
+    else{
+        // update words list visual with the common words count
+        for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
+            var word = commonWords[wordIndex];
+            var wordObj = wordData[word];
+            var $wordListItem = $("<li/>").text(word);
+            var $counter = $("<span/>")
+                    .addClass("word-count")
+                    .text(wordObj.count.toString());
+                    
+            $wordListItem.append($counter);
+            //var tweets = wordObj.tweet_ids_set;
+            
+            $wordList.append($wordListItem);
+        }
+    }
+}
+
+/** simply processes Tweet data for word count analysis **/
 function processTweets(data, wordData, tweetIdData) {
 	//console.log(data);
     if(data.error){
@@ -249,10 +283,7 @@ function processTweets(data, wordData, tweetIdData) {
 	for (var i = 0; i < data.results.length; i++) {
 		var tweet = data.results[i];
 		var place = "";
-		
-		/*if(tweet.geo != null) {
-			place = tweet.geo.coordinates[0]+", "+tweet.geo.coordinates[1]
-		}*/
+
 		/*
         var item = "<li><img class='pic' src='"+
                 tweet.profile_image_url+
@@ -266,26 +297,24 @@ function processTweets(data, wordData, tweetIdData) {
                 tweet.created_at+"'>"+
                 tweet.created_at+
                 "</time></li>";
-        */        
-		//var item = "<li>"+tweet.text+"</li>"
-        //var item = tweet.text;
-		//$("#tweets-col").append(item);
+        */
         wordData = updateWordCounts(tweet, wordData, tweetIdData);
 	}
-    //console.log(data.results.length);
     return wordData;
 }
 
+/** updates the word count data by analyzing the given tweet content **/
 function updateWordCounts(tweet, wordData, tweetIdData){
     //console.log("tweet data:");
     //console.log(tweet);
     var text = tweet.text.toLowerCase();
     var tweet_id = tweet.id_str;
-    //use regex to remove punctuation characters 
-    // (excluding @ and # hashtags)
-    // removes from beginning or ends of words
-    // also remove links starting with http
-    // also remove unicode
+    /*use regex to remove punctuation characters 
+     * (excluding @ and # hashtags)
+     * removes from beginning or ends of words
+     * also remove links starting with http
+     * also remove unicode
+     */
     text = text.replace(/&\w+;|\b[^\w\s]+\B|\B[^\w\s]+\b|\bhttp.*\B/g, "");
     //split on whitespace
     text = text.split(/\s/);
@@ -307,15 +336,15 @@ function updateWordCounts(tweet, wordData, tweetIdData){
         
         // actually increment count
         wordData[word].count += 1;
+        // update and link to tweet data
         wordData[word].tweet_ids_set[tweet_id] = true;
         tweetIdData[tweet_id] = tweet;
     }
     return wordData;
 }
 
-//return an array of the most common words
+/** return an array of the most common words in the wordData, most common first **/
 function getMostCommonWords(wordData){
-    //console.log("started sorting");
     // sort by highest count
     var keyVals = [];
     var value;
@@ -324,22 +353,18 @@ function getMostCommonWords(wordData){
         var count_value = wordData[key].count;
         keyVals[keyVals.length] = {"word":key, "count":count_value};                        
     }
-    //console.log(keyVals);
-    //console.log(wordData);
     keyVals.sort(compareWordCountDesc);
     
-    //console.log("putting into array");
     // return words sorted by commonness
     var commonWords = [];
     for(var i in keyVals){
         // put word back in array
         commonWords[i] = keyVals[i].word;
     }
-    //console.log("common words:");
-    //console.log(commonWords);
     return commonWords
 }
 
+/** sorting function used to compare wordcounts, descending order **/
 function compareWordCountDesc(wordCount1, wordCount2){
     var count1 = wordCount1.count;
     var count2 = wordCount2.count;
@@ -352,6 +377,7 @@ function compareWordCountDesc(wordCount1, wordCount2){
     }
 }
 
+/** updates the stopwords set by adding every word in the given list of words **/
 function updateStopWords(stopWordsSet, stopWordsList){
     var stopWord;
     for(var i in stopWordsList){
@@ -361,6 +387,10 @@ function updateStopWords(stopWordsSet, stopWordsList){
     return stopWordsSet;
 }
 
+/** creates and returns the stopwords set (ie: the words to ignore during Tweet processing)
+    
+    TODO: a bit strict right now, could be pruned
+**/
 function makeStopWordsSet(){
     var stopWords = ['a', 'about', 'above', 'after', 'again',
         'against', 'all', 'am', 'an', 'and',
@@ -386,7 +416,7 @@ function makeStopWordsSet(){
         'lets', 'like', 'me',
         'more', 'most', "mustn't", 'my', 'myself',
         'no', 'nor', 'not', 'of', 'off',
-        'on', 'once', 'only', 'or', 'other',
+        'on', 'only', 'or', 'other',
         'ought', 'our', 'ours', 'ourselves', 'out',
         'over', 'own', 'same', "shan't", 'she',
         "she'd", "she'll", "she's", 'shes', 'should', "shouldn't",
@@ -406,7 +436,7 @@ function makeStopWordsSet(){
         'would', "wouldn't", 'wouldnt',
         'you', "you'd", 'youd', "you'll", 'youll', "you're", 'youre', "you've",
         'your', 'yours', 'yourself', 'yourselves'];
-    var swears = ["ass", "fuck", "fucking", "fucked", "shit", "damn", "bitch", "bitches", "nigga", "nigger", "niggas", "niggers"];
+    var swears = ["ass", "fuck", "fucking", "fucked", "shit", "bullshit", "damn", "bitch", "bitches", "nigga", "nigger", "niggas", "niggers"];
     var boring = ["lol", "lmao", "smh"];
     
     var stopWordsSet = Object();
@@ -416,7 +446,9 @@ function makeStopWordsSet(){
     return stopWordsSet;
 }
 
-// TODO: size parameter currently unused, will be used once scaling/weighting is implemented
+/** grabs and processes photo from Flickr based on the given search term
+
+TODO: size parameter currently unused, will be used once scaling/weighting is implemented **/
 function fetchFlickrPhotos(rawTerm, size){
     var searchTerm = encodeURIComponent(rawTerm.toLowerCase());
     var perpage = 50;
@@ -435,7 +467,6 @@ function fetchFlickrPhotos(rawTerm, size){
                 "&per_page="+perpage.toString()+
                 "&extras=description,owner_name"+
                 "&format=json&jsoncallback=?"; // used to do JSON request
-    //console.log(url);            
                
     var $loadingmessage = $("<p/>").attr("id", "loading-photos"+makeSafeForCSS(rawTerm))
                                 .text("loading Flickr photos for \'"+rawTerm+"\'... ").hide();
@@ -446,8 +477,7 @@ function fetchFlickrPhotos(rawTerm, size){
         url: url,
         dataType: "jsonp",
         success: function(data) {
-            console.log("Flickr data returned!" + searchTerm);
-            console.log(data);
+            //console.log("Flickr data returned!" + searchTerm, data);
             if(data.stat == "fail"){
                 $("#messages").append(
                     $("<p />").text("error while fetching Flickr: "+data.message)
@@ -470,37 +500,41 @@ function fetchFlickrPhotos(rawTerm, size){
     });    
 }
 
+/** based on the given Flickr JSON data, processes images (resizing/cropping) and updates Isotope container 
+
+TODO: fix issue with old images loading even after initial search is overridden**/
 function processFlickrPhotos(data, rawTerm, size){
     if(!(data.photos && data.photos.photo)){
         console.log("no photos to process!");
         return;
     }
-    console.log(data);
     
     var photoDataArray = data.photos.photo;
+    // if no photos, remove loading message and display error
     if(photoDataArray.length == 0){
         var $error = $("<p />").text("No Flickr photos available for "+rawTerm+". :(")
         $("#messages").appendSlide($error);    
+        
         $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
             $(this).remove();
         });
+        
         setTimeout(function(){
             $error.slideUp(function(){
                 $(this).remove();
             });
-            
         }, 1500);
         return;
     }
     
     var photoData;
     
-    // images already loaded
+    // number of images already loaded
     var loadedImages = 0;
     // total number of images to load
     var totalImages = Math.min(5, photoDataArray.length);
     for(var i = 0; i < totalImages; i++){    
-        // randomize pictures by picking random index (using partial Knuth shuffle)
+        // randomize chosen picture by picking random index (using partial Knuth shuffle)
         var randomIndex = Math.floor(Math.random()*(photoDataArray.length-i))+i;
         if(!(0 <= randomIndex && randomIndex < photoDataArray.length)){
             console.log("error: randomly picked index "+randomIndex.toString()+
@@ -509,12 +543,17 @@ function processFlickrPhotos(data, rawTerm, size){
         }
         photoData = photoDataArray[randomIndex];
 
-        // swapping
+        // swapping for Knuth shuffle
         var tempPhotoData = photoDataArray[i];
         photoDataArray[i] = photoDataArray[randomIndex];
         photoDataArray[randomIndex] = tempPhotoData;
         
+        // create image jQuery object to add to Isotope container
+        
+        // the actual <img>
         var $image = $("<img />").addClass("flickr-img");
+        
+        // the link to the original Flickr photo
         var $link = $("<a />").addClass("photo-link");
         $link.attr({
             href: constructFlickrLinkURL(photoData),
@@ -522,33 +561,39 @@ function processFlickrPhotos(data, rawTerm, size){
         });
         $link.append($image);
         
+        // the wrapper element used in the Isotope container
         var $photoWrapper = $("<div/>").addClass("photo-frame").addClass(makeSafeForCSS(rawTerm));
         $photoWrapper.append($link);
         
+        // the word bubble below the photo
         var $wordLabel = $("<div/>").addClass("word-label").text(rawTerm);
         $link.append($wordLabel);
         
-        //temporarily hide and append to document so that .closest() call works
+        //temporarily hide and append to document so that jQuery .closest() call works
         $photoWrapper.addClass("hidden");
         $("body").append($photoWrapper);
         
+        // once source image is loaded, process it and add it
         $image.load(function(){
             loadedImages += 1;
+            // update loading message
             $("#loading-photos"+makeSafeForCSS(rawTerm)).find(".load-percent")
                     .text(getPercentStr(loadedImages, totalImages));
                     
-            //console.log($(this).parents());
             var $wrapper = $(this).closest(".photo-frame");
             // remove from document so that we may place it in the correct container
             $wrapper.detach();
             // remember to make the thing visible again!
             $wrapper.removeClass("hidden");
             
+            // processing to turn into properly sized square
             resizeOversizedPhoto($(this), size);
             cropPhotoSquare($(this));
-            $container.append($wrapper).isotope('appended', $wrapper);
-            //$("#words-col-wrap").prepend($wrapper);
             
+            // actually add it
+            myData.$container.append($wrapper).isotope('appended', $wrapper);
+            
+            // remove loading message
             if(loadedImages >= totalImages){
                 $("#loading-photos"+makeSafeForCSS(rawTerm)).slideUp("fast", function(){
                     $(this).remove();
@@ -556,11 +601,11 @@ function processFlickrPhotos(data, rawTerm, size){
             }
         });
         
-        //sizes = ["small", "medium", "large"]; 
         $image.attr("src", constructFlickrImageURL(photoData, size));
     }
 }
 
+/** resizes an image so that the targetSize is its maximum dimension **/
 function resizeOversizedPhoto($image, targetSize){
     var img = $image[0];
     // if smallest dimension is width, which is too big
@@ -578,7 +623,9 @@ function resizeOversizedPhoto($image, targetSize){
     return $image;
 }
 
-//leaves square photos untouched, wraps nonsquare in a clipper div container
+/**leaves square photos untouched, 
+wraps nonsquare photo in a clipping div container to make it a square
+**/
 function cropPhotoSquare($image, targetSize){
     
     var imgWidth = $image[0].width;
@@ -610,8 +657,11 @@ function cropPhotoSquare($image, targetSize){
     $image.wrap($imageClipper);
 }
 
-// see: http://www.flickr.com/services/api/misc.urls.html
-// format: http://farm{farm-id}.staticflickr.com/{server-id}/{id}_{secret}_[mstzb].jpg
+/** constructs the proper Flickr image URL from the JSON data to best match the requested size
+
+ see: http://www.flickr.com/services/api/misc.urls.html
+ format: http://farm{farm-id}.staticflickr.com/{server-id}/{id}_{secret}_[mstzb].jpg
+**/
 function constructFlickrImageURL(photo, size){
     var url = "http://farm"+photo.farm+
            ".staticflickr.com/"+photo.server+
@@ -637,24 +687,32 @@ function constructFlickrImageURL(photo, size){
     return url;                 
 }
 
-//http://www.flickr.com/photos/{user-id}/{photo-id} - individual photo
+/** constructs the proper Flickr link to the original Flickr page from the JSON data
+ format: http://www.flickr.com/photos/{user-id}/{photo-id} - individual photo
+**/
 function constructFlickrLinkURL(photo){
     return "http://www.flickr.com/photos/" + photo.owner + "/"+photo.id+"/";
 }
 
+/** initialize and bind events/data **/
 function init(){
+    // custom object for global data
     myData = {};
 
     myData.stopWordsSet = makeStopWordsSet();
+    
+    // common words tab stays hidden until a search
     $("#common-words-tab").hide();
     $("#common-words-content").hide();
     $("#common-words-list").hide();
     
+    // local tweets option defaults to checked
     $("#local-tweets-checkbox").attr('checked', true);
+    
     $("#search-form").submit(performSearch);
     
-    $container = $("#photos");
-    $container.isotope({
+    myData.$container = $("#photos");
+    myData.$container.isotope({
         itemSelector : '.photo-frame',
         layoutMode : 'masonry',
         masonry: {
@@ -675,4 +733,5 @@ function init(){
     });
 }
 
+var myData;
 $(document).ready(init);

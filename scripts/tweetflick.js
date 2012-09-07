@@ -215,30 +215,46 @@ function fetchTweets(rawTerm, position) {
                 commonWords.length = 0;
                 commonWords = getMostCommonWords(wordData);   
 
-                var maxWords = Math.min(commonWords.length, 10);
+                var maxWords = getMaxWords(commonWords);
                 
                 $("#common-words-list").slideUp(function(){
                     updateCommonWordsList(commonWords, wordData, tweetIdData, maxWords);
                 });
                 
-                // perform photos search & update loading messages when all tweets are loaded/processed
                 if(readyPages == maxPages){
-                    //console.log(commonWords);
-                    $("#common-words-list").slideDown();
-                    $("#searching-tweets-message").slideUp(function(){
-                        $(this).remove();
-                    });
-                    if(commonWords.length == 0){
-                        $("#messages").appendSlide($("<p/>").text("no tweets found for \""+rawTerm+"\", try another search"));
-                        return;
-                    }
-                    for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
-                        var word = commonWords[wordIndex];
-                        fetchFlickrPhotos(word);
-                    }
+                    finishTweetSearch(commonWords, maxWords);
+                }
+            },
+            error: function(data){
+                console.log("error while fetching tweets:", data.responseText);
+                readyPages += 1;
+                if(readyPages == maxPages){
+                    finishTweetSearch(commonWords, getMaxWords(commonWords));
                 }
             }
         });
+    }
+}
+
+function getMaxWords(commonWords){
+    return Math.min(commonWords.length, 10);
+}
+
+// perform photos search & update loading messages when all tweets are loaded/processed
+// commonWords = the list of the most common words in order of descending frequency
+// maxWords = the maximum number of words to perform photo searches for
+function finishTweetSearch(commonWords, maxWords){
+    $("#common-words-list").slideDown();
+    $("#searching-tweets-message").slideUp(function(){
+        $(this).remove();
+    });
+    if(commonWords.length == 0){
+        $("#messages").appendSlide($("<p/>").text("no tweets found for \""+rawTerm+"\", try another search"));
+        return;
+    }
+    for(var wordIndex = 0; wordIndex < maxWords; wordIndex ++){
+        var word = commonWords[wordIndex];
+        fetchFlickrPhotos(word);
     }
 }
 
